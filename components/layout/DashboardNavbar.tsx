@@ -1,0 +1,74 @@
+"use client";
+
+import { Search, Bell, User, Menu } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { Input } from "@/components/ui/Input";
+
+export const DashboardNavbar = ({
+    onProfileClick,
+    onNotifClick,
+    onSearch
+}: {
+    onProfileClick: () => void;
+    onNotifClick: () => void;
+    onSearch?: (query: string) => void;
+}) => {
+    return (
+        <nav className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-border px-6 py-3">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                {/* Logo */}
+                <Link href="/" className="flex-shrink-0">
+                    <Image src="/logo.png" alt="LODGEME" width={100} height={28} className="h-8 w-auto" />
+                </Link>
+
+                {/* Search Bar - Hidden on extra small, shown on sm+ */}
+                <div className="hidden sm:flex flex-1 max-w-xl relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                        <Search size={18} />
+                    </div>
+                    <Input
+                        placeholder="Search by city or location..."
+                        className="pl-12 h-11 bg-accent/30 border border-transparent focus:bg-white focus:border-primary/50 focus:ring-transparent transition-all duration-300 rounded"
+                        onChange={(e) => onSearch?.(e.target.value)}
+                    />
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <button
+                        onClick={onNotifClick}
+                        className="p-2 text-muted-foreground hover:text-primary hover:bg-accent/50 rounded-full transition-all relative"
+                    >
+                        <Bell size={22} />
+                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    </button>
+
+                    <div className="h-8 w-[1px] bg-border mx-1 hidden sm:block" />
+
+                    <button
+                        onClick={onProfileClick}
+                        className="flex items-center gap-2 p-1 pl-1 pr-3 hover:bg-accent/50 rounded-full border border-border transition-all"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden border border-primary/20">
+                            <User size={20} />
+                        </div>
+                        <span className="text-sm font-bold text-foreground hidden md:block">Profile</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Search - Only visible on very small screens */}
+            <div className="mt-3 sm:hidden relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Search size={18} />
+                </div>
+                <Input
+                    placeholder="Search location..."
+                    className="pl-12 h-11 bg-accent/30 border border-transparent focus:bg-white focus:border-primary/50 focus:ring-transparent transition-all duration-300 rounded"
+                    onChange={(e) => onSearch?.(e.target.value)}
+                />
+            </div>
+        </nav>
+    );
+};

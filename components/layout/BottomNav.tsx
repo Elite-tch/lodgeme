@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Search, Heart, MessageSquare, User } from "lucide-react";
+import { Home, Search, Bookmark, MessageSquare, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ export const BottomNav = ({
     const navItems = [
         { name: "Home", icon: Home, href: "/dashboard/client" },
         { name: "Filter", icon: Search, onClick: onFilterClick },
-        { name: "Favorites", icon: Heart, href: "/dashboard/client/favorites" },
+        { name: "Saved", icon: Bookmark, href: "/dashboard/client/favorites" },
         { name: "Messages", icon: MessageSquare, href: "/dashboard/client/messages" },
         { name: "Profile", icon: User, onClick: onProfileClick },
     ];

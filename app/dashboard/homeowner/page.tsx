@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
+import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
 import {
@@ -76,13 +77,14 @@ export default function HomeownerDashboard() {
     return (
         <div className="min-h-screen bg-[#fafafa] flex">
             <HomeownerSidebar />
+            <HomeownerHeader />
 
             {/* <VerificationModal
                 isOpen={isVerifyModalOpen}
                 onCloseAction={() => setIsVerifyModalOpen(false)}
             /> */}
 
-            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0">
+            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0 pt-16">
                 <div className="max-w-5xl mx-auto">
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -148,7 +150,7 @@ export default function HomeownerDashboard() {
                     </div>
 
                     <div className="">
-                        
+
 
                         {/* Side Tips / Info */}
                         <div className="space-y-6 flex gap-4 md:flex-row flexcol ">

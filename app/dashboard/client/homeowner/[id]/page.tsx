@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Reveal } from "@/components/ui/Reveal";
@@ -13,6 +13,7 @@ import {
     Mail,
     Calendar,
     ChevronLeft,
+    ChevronRight,
     Home,
     BedDouble,
     Bath,
@@ -23,7 +24,7 @@ import {
     MoreHorizontal,
     Globe,
     CheckCircle2,
-    Heart,
+    Bookmark,
     Briefcase,
     Phone
 } from "lucide-react";
@@ -31,12 +32,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProfileModal } from "@/components/modals/ProfileModal";
 import { NotificationsModal } from "@/components/modals/NotificationsModal";
+import { setDoc, deleteDoc } from "firebase/firestore";
 
 export default function HomeownerPublicProfile() {
     const { id } = useParams();
     const router = useRouter();
     const [userData, setUserData] = useState<any>(null);
     const [properties, setProperties] = useState<any[]>([]);
+    const [favorites, setFavorites] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Modal States
@@ -78,7 +81,46 @@ export default function HomeownerPublicProfile() {
         };
 
         fetchHomeownerData();
+
+        // Fetch user favorites if logged in
+        const fetchFavorites = async () => {
+            if (auth.currentUser) {
+                const favQ = query(collection(db, "favorites"), where("userId", "==", auth.currentUser.uid));
+                const favSnap = await getDocs(favQ);
+                setFavorites(favSnap.docs.map(doc => doc.data().propertyId));
+            }
+        };
+        fetchFavorites();
     }, [id, router]);
+
+    const toggleFavorite = async (e: React.MouseEvent, propertyId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!auth.currentUser) {
+            router.push("/auth/login");
+            return;
+        }
+
+        const isFav = favorites.includes(propertyId);
+        const favId = `${auth.currentUser.uid}_${propertyId}`;
+
+        try {
+            if (isFav) {
+                await deleteDoc(doc(db, "favorites", favId));
+                setFavorites(prev => prev.filter(id => id !== propertyId));
+            } else {
+                await setDoc(doc(db, "favorites", favId), {
+                    userId: auth.currentUser.uid,
+                    propertyId: propertyId,
+                    createdAt: new Date().toISOString()
+                });
+                setFavorites(prev => [...prev, propertyId]);
+            }
+        } catch (error) {
+            console.error("Error toggling favorite:", error);
+        }
+    };
 
     if (loading) {
         return (
@@ -103,7 +145,7 @@ export default function HomeownerPublicProfile() {
 
 
             {/* Profile Header */}
-            <div className="bg-white shadow-sm mb-6">
+            <div className=" mb-6">
                 <div >
                     {/* Cover Photo */}
                     <div className="relative h-[250px] md:h-[250px] w-full bg-gradient-to-r from-primary/20 via-primary/10 to-accent/30  overflow-hidden group">
@@ -182,7 +224,7 @@ export default function HomeownerPublicProfile() {
                 </div>
 
                 <div className="max-w-6xl mx-auto px-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="flex md:flex-row flex-col gap-6">
 
                         {/* Left Sidebar: About */}
                         <div className="lg:col-span-4 space-y-4">
@@ -258,15 +300,15 @@ export default function HomeownerPublicProfile() {
 
                         {/* Right Column: Properties */}
                         <div className="lg:col-span-8 space-y-6">
-                            <div className="bg-white rounded-xl px-6 py-4 shadow-sm">
-                                <h3 className="text-lg font-black text-foreground">Active Listings</h3>
+                            <div className=" ">
+                                <h3 className="text-lg font-bold md:text-2xl font-black text-foreground">Other property from {userData.displayName || userData.fullName || "Owner"}</h3>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {properties.map((prop, idx) => (
+                                {properties.slice(0, 2).map((prop, idx) => (
                                     <Reveal key={prop.id} direction="up" delay={idx * 0.05}>
-                                        <Link href={`/dashboard/client/property/${prop.id}`} className="group block h-full">
-                                            <div className="bg-white rounded-lg overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 h-full flex flex-col border border-border/50">
+                                        <Link href={`/dashboard/client/property/${prop.id}`} className="group block w-[350px] h-full">
+                                            <div className="bg-white rounded overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 h-full flex flex-col border border-border/50">
                                                 {/* Image Section */}
                                                 <div className="relative aspect-[4/3] overflow-hidden">
                                                     <Image
@@ -275,29 +317,20 @@ export default function HomeownerPublicProfile() {
                                                         fill
                                                         className="object-cover transition-transform duration-700 "
                                                     />
-                                                    {/* Homeowner Overlay */}
-                                                    <div className="absolute top-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur-md px-2 py-1.5 rounded-full border border-white/50 shadow-sm">
-                                                        <div className="relative w-6 h-6 rounded-full overflow-hidden border border-primary/20">
-                                                            <Image
-                                                                src={userData.photoURL || userData.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
-                                                                alt={userData.displayName || userData.fullName || "Homeowner"}
-                                                                fill
-                                                                className="object-cover"
-                                                            />
-                                                        </div>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest pr-1">{userData.displayName || userData.fullName || "Owner"}</span>
-                                                    </div>
-                                                    <div className="absolute top-3 right-3">
-                                                        <button className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-muted-foreground hover:text-red-500 transition-all shadow-sm active:scale-90">
-                                                            <Heart size={16} />
-                                                        </button>
-                                                    </div>
                                                 </div>
 
                                                 {/* Content Section */}
                                                 <div className="p-4 flex flex-col flex-1">
-                                                    <div className="text-[10px] font-black uppercase tracking-[0.15em] text-primary/60 mb-1">
-                                                        {prop.type || "Apartment"}
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <div className="text-[10px] font-black uppercase tracking-[0.15em] text-primary/60">
+                                                            {prop.type || "Apartment"}
+                                                        </div>
+                                                        <button
+                                                            onClick={(e) => toggleFavorite(e, prop.id)}
+                                                            className={`w-7 h-7 rounded-full transition-all flex items-center justify-center active:scale-90 ${favorites.includes(prop.id) ? 'bg-primary text-white' : 'bg-accent/50 text-primary hover:bg-primary hover:text-white'}`}
+                                                        >
+                                                            <Bookmark size={14} fill={favorites.includes(prop.id) ? "currentColor" : "none"} />
+                                                        </button>
                                                     </div>
                                                     <h3 className="font-bold text-base text-foreground line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                                                         {prop.title}
@@ -348,6 +381,19 @@ export default function HomeownerPublicProfile() {
                                     </div>
                                 )}
                             </div>
+
+                            {properties.length > 2 && (
+                                <Reveal direction="up" delay={0.2}>
+                                    <div className="flex justify-center mt-12 pb-10">
+                                        <Link href="/dashboard/client">
+                                            <Button variant="outline" className="h-12 px-10 rounded font-black gap-3 hover:bg-primary hover:text-white transition-all duration-500  border-2 border-primary/10">
+                                                View All Listings
+                                                <ChevronRight size={20} />
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </Reveal>
+                            )}
                         </div>
                     </div>
                 </div>

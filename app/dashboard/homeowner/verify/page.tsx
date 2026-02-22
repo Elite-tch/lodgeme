@@ -15,10 +15,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import Confetti from "react-confetti";
+import { useWindowSize } from "react-use";
 
 type Step = "intro" | "id-upload" | "face-scan" | "submitting" | "completed";
 
 export default function VerificationPage() {
+    const { width, height } = useWindowSize();
     const [step, setStep] = useState<Step>("intro");
     const [loading, setLoading] = useState(false);
 
@@ -150,8 +153,17 @@ export default function VerificationPage() {
 
                     {step === "completed" && (
                         <Reveal direction="up">
+                            {step === "completed" && (
+                                <Confetti
+                                    width={width}
+                                    height={height}
+                                    recycle={false}
+                                    numberOfPieces={300}
+                                    colors={["#bb7655", "#f0d38f", "#1c1c1c"]}
+                                />
+                            )}
                             <div className="py-6 flex flex-col items-center justify-center text-center space-y-6">
-                                <div className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-green-200">
+                                <div className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/20">
                                     <CheckCircle2 size={40} />
                                 </div>
                                 <div>

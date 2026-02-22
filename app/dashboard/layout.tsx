@@ -32,5 +32,5 @@ export default function DashboardLayout({
         return null; // Don't render dashboard content until verified
     }
 
-    return <>{children}</>;
+    return <div className="pt-14">{children}</div>;
 }

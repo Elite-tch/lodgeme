@@ -1,6 +1,7 @@
 "use client";
 
 import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
+import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { User, ShieldCheck, Mail, MapPin, Phone, Camera, X, CheckCircle2, Save, Upload, Info, Briefcase, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -140,8 +141,9 @@ export default function HomeownerProfilePage() {
     return (
         <div className="min-h-screen bg-[#fafafa] flex">
             <HomeownerSidebar />
+            <HomeownerHeader />
 
-            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0">
+            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0 pt-16">
                 <div className="max-w-4xl mx-auto">
                     <h1 className="text-3xl lg:text-4xl font-black mb-12">My Account</h1>
 

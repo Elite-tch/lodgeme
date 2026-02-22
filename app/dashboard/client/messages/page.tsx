@@ -2,16 +2,16 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
-import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
+import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { Reveal } from "@/components/ui/Reveal";
 import {
     MessageSquare,
     Send,
+    ChevronLeft,
     Search,
     Plus,
-    CheckCheck,
-    ChevronLeft
+    CheckCheck
 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 
@@ -27,14 +27,19 @@ import {
     serverTimestamp,
     updateDoc,
     increment,
+    setDoc,
     Timestamp
 } from "firebase/firestore";
+import { ProfileModal } from "@/components/modals/ProfileModal";
+import { NotificationsModal } from "@/components/modals/NotificationsModal";
 import { cn } from "@/lib/utils";
 import { createNotification } from "@/lib/notifications";
 
-export default function HomeownerMessagesPage() {
+export default function ClientMessagesPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const ownerId = searchParams.get("ownerId");
+    const propertyId = searchParams.get("propertyId");
 
     const [activeChat, setActiveChat] = useState<any>(null);
     const [conversations, setConversations] = useState<any[]>([]);
@@ -42,6 +47,10 @@ export default function HomeownerMessagesPage() {
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
+
+    // Modals
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +64,7 @@ export default function HomeownerMessagesPage() {
         scrollToBottom();
     }, [messages]);
 
-    // 1. Fetch all conversations for the current homeowner
+    // 1. Fetch all conversations for the current user
     useEffect(() => {
         if (!auth.currentUser) return;
 
@@ -106,10 +115,22 @@ export default function HomeownerMessagesPage() {
 
             setConversations(updatedChats);
             setLoading(false);
+
+            // If we came from a property page, find or create that chat
+            if (ownerId && !activeChat) {
+                const existingChat = updatedChats.find((c: any) => c.participants.includes(ownerId));
+                if (existingChat) {
+                    setActiveChat(existingChat);
+                    setShowChatOnMobile(true);
+                } else {
+                    // Start a new chat placeholder in UI
+                    startNewChat(ownerId);
+                }
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [ownerId]);
 
     // 2. Sync Active Chat data when conversations update (for name refresh)
     useEffect(() => {
@@ -120,6 +141,26 @@ export default function HomeownerMessagesPage() {
             }
         }
     }, [conversations, activeChat?.id]);
+
+    // 2.5 Mark chat as read when selected
+    useEffect(() => {
+        const markAsRead = async () => {
+            if (!auth.currentUser || !activeChat?.id) return;
+
+            const myUnread = activeChat.unreadCount?.[auth.currentUser.uid] || 0;
+            if (myUnread > 0) {
+                try {
+                    await updateDoc(doc(db, "chats", activeChat.id), {
+                        [`unreadCount.${auth.currentUser.uid}`]: 0
+                    });
+                } catch (e) {
+                    console.error("Error marking as read:", e);
+                }
+            }
+        };
+
+        markAsRead();
+    }, [activeChat?.id, activeChat?.unreadCount, auth.currentUser?.uid]);
 
     // 3. Listen for messages in active chat
     useEffect(() => {
@@ -143,26 +184,38 @@ export default function HomeownerMessagesPage() {
         return () => unsubscribe();
     }, [activeChat?.id]);
 
-    // 4. Mark chat as read when selected
-    useEffect(() => {
-        const markAsRead = async () => {
-            if (!auth.currentUser || !activeChat?.id) return;
+    const startNewChat = async (targetUserId: string) => {
+        if (!auth.currentUser) return;
 
-            // If there's an unread count for the current user, reset it
-            const myUnread = activeChat.unreadCount?.[auth.currentUser.uid] || 0;
-            if (myUnread > 0) {
-                try {
-                    await updateDoc(doc(db, "chats", activeChat.id), {
-                        [`unreadCount.${auth.currentUser.uid}`]: 0
-                    });
-                } catch (e) {
-                    console.error("Error marking as read:", e);
-                }
-            }
-        };
+        try {
+            const userDoc = await getDoc(doc(db, "users", targetUserId));
+            const userData = userDoc.data();
 
-        markAsRead();
-    }, [activeChat?.id, activeChat?.unreadCount, auth.currentUser?.uid]);
+            const newChat = {
+                id: `new_${targetUserId}`,
+                participants: [auth.currentUser.uid, targetUserId],
+                participantData: {
+                    [auth.currentUser.uid]: {
+                        name: auth.currentUser.displayName || "Client User",
+                        photo: auth.currentUser.photoURL
+                    },
+                    [targetUserId]: {
+                        name: userData?.fullName || userData?.displayName || "Homeowner",
+                        photo: userData?.photoURL || userData?.profileImage
+                    }
+                },
+                lastMessage: "",
+                updatedAt: Timestamp.now(),
+                tenantId: auth.currentUser.uid,
+                homeownerId: targetUserId
+            };
+
+            setActiveChat(newChat);
+            setShowChatOnMobile(true);
+        } catch (error) {
+            console.error("Error starting new chat:", error);
+        }
+    };
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -172,16 +225,34 @@ export default function HomeownerMessagesPage() {
         setNewMessage("");
 
         try {
-            const chatId = activeChat.id;
+            let chatId = activeChat.id;
 
-            const otherId = activeChat.participants?.find((p: string) => p !== auth.currentUser?.uid);
+            // If it's a new chat, initialize it in Firestore
+            if (chatId.startsWith("new_")) {
+                const targetId = activeChat.participants.find((p: string) => p !== auth.currentUser?.uid);
+                const chatRef = doc(collection(db, "chats"));
+                chatId = chatRef.id;
 
-            await updateDoc(doc(db, "chats", chatId), {
-                lastMessage: messageText,
-                updatedAt: serverTimestamp(),
-                [`unreadCount.${otherId}`]: increment(1),
-                lastMessageSenderId: auth.currentUser?.uid
-            });
+                await setDoc(chatRef, {
+                    participants: activeChat.participants,
+                    participantData: activeChat.participantData,
+                    lastMessage: messageText,
+                    updatedAt: serverTimestamp(),
+                    propertyContext: propertyId || null,
+                    tenantId: activeChat.tenantId,
+                    homeownerId: activeChat.homeownerId
+                });
+
+                setActiveChat({ ...activeChat, id: chatId });
+            } else {
+                const otherId = activeChat.participants?.find((p: string) => p !== auth.currentUser?.uid);
+                await updateDoc(doc(db, "chats", chatId), {
+                    lastMessage: messageText,
+                    updatedAt: serverTimestamp(),
+                    [`unreadCount.${otherId}`]: increment(1),
+                    lastMessageSenderId: auth.currentUser?.uid
+                });
+            }
 
             await addDoc(collection(db, `chats/${chatId}/messages`), {
                 senderId: auth.currentUser.uid,
@@ -190,6 +261,7 @@ export default function HomeownerMessagesPage() {
             });
 
             // Notify the recipient
+            const otherId = activeChat.participants?.find((p: string) => p !== auth.currentUser?.uid);
             if (otherId) {
                 const senderName = activeChat.participantData?.[auth.currentUser.uid]?.name ||
                     auth.currentUser.displayName || "Someone";
@@ -215,7 +287,24 @@ export default function HomeownerMessagesPage() {
         setIsUploading(true);
 
         try {
-            const chatId = activeChat.id;
+            let chatId = activeChat.id;
+
+            // If new chat, create it first
+            if (chatId.startsWith("new_")) {
+                const chatRef = doc(collection(db, "chats"));
+                chatId = chatRef.id;
+                await setDoc(chatRef, {
+                    participants: activeChat.participants,
+                    participantData: activeChat.participantData,
+                    lastMessage: "📎 Attachment",
+                    updatedAt: serverTimestamp(),
+                    propertyContext: propertyId || null,
+                    tenantId: activeChat.tenantId,
+                    homeownerId: activeChat.homeownerId
+                });
+                setActiveChat({ ...activeChat, id: chatId });
+            }
+
             const isImage = file.type.startsWith("image/");
             const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
             const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -270,25 +359,27 @@ export default function HomeownerMessagesPage() {
         <div className="h-screen bg-white flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Synchronizing Inbox...</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Syncing Messages...</p>
             </div>
         </div>
     );
 
     return (
-        <div className="h-screen bg-white flex overflow-hidden">
-            <HomeownerSidebar />
-            <HomeownerHeader />
+        <main className="h-screen flex flex-col bg-white overflow-hidden">
+            <DashboardNavbar
+                onProfileClick={() => setIsProfileOpen(true)}
+                onNotifClick={() => setIsNotificationsOpen(true)}
+            />
 
-            <div className="flex-1 flex overflow-hidden lg:ml-64">
+            <div className="flex-1 flex overflow-hidden">
                 {/* Conversations Sidebar */}
                 <aside className={cn(
                     "w-full md:w-80 lg:w-96 border-r border-border flex flex-col bg-[#fcfcfc] transition-all duration-300",
                     showChatOnMobile ? "hidden md:flex" : "flex"
                 )}>
-                    <div className="p-8 space-y-4">
+                    <div className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h1 className="text-3xl font-black font-outfit uppercase tracking-tight">Inbox</h1>
+                            <h1 className="text-2xl font-black">Messages</h1>
                             <button className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors">
                                 <Plus size={20} />
                             </button>
@@ -298,8 +389,8 @@ export default function HomeownerMessagesPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={16} />
                             <input
                                 type="text"
-                                placeholder="Search messages..."
-                                className="w-full h-12 pl-10 pr-4 bg-accent/30 border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-primary/20 transition-all outline-none"
+                                placeholder="Search conversations..."
+                                className="w-full h-11 pl-10 pr-4 bg-accent/30 border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-primary/20 transition-all outline-none"
                             />
                         </div>
                     </div>
@@ -319,36 +410,36 @@ export default function HomeownerMessagesPage() {
                                                 setShowChatOnMobile(true);
                                             }}
                                             className={cn(
-                                                "w-full p-5 flex items-center gap-4 hover:bg-accent/5 transition-all text-left group border-l-4 relative",
+                                                "w-full p-4 flex items-center gap-4 hover:bg-accent/5 transition-all text-left group border-l-4 relative",
                                                 isActive ? "bg-primary/5 border-primary" : "border-transparent",
                                                 myUnread > 0 && !isActive && "bg-blue-50/30"
                                             )}
                                         >
                                             <div className="relative flex-shrink-0">
-                                                <div className="w-14 h-14 rounded-full overflow-hidden border border-border shadow-sm group-hover:scale-105 transition-transform">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden border border-border shadow-sm group-hover:scale-105 transition-transform">
                                                     <img
                                                         src={other?.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${other?.name}`}
                                                         alt=""
                                                         className="w-full h-full object-cover"
                                                     />
                                                 </div>
-                                                <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
+                                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center justify-between mb-0.5">
                                                     <h3 className={cn("text-sm truncate uppercase tracking-tight", (isActive || myUnread > 0) ? "font-black" : "font-bold")}>
-                                                        {other?.name || "Client User"}
+                                                        {other?.name || "Homeowner"}
                                                     </h3>
-                                                    <span className="text-[9px] font-black uppercase text-muted-foreground tracking-tighter shrink-0">
+                                                    <span className="text-[9px] font-black uppercase text-white tracking-tighter">
                                                         {chat.updatedAt?.toDate() ? new Date(chat.updatedAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-2">
                                                     <p className={cn(
-                                                        "text-xs truncate font-medium line-clamp-1 flex-1",
+                                                        "text-xs truncate font-medium flex-1",
                                                         myUnread > 0 ? "text-foreground font-bold" : "text-muted-foreground font-medium"
                                                     )}>
-                                                        {chat.lastMessage || "Initial inquiry received"}
+                                                        {chat.lastMessage || "No messages yet"}
                                                     </p>
                                                     {myUnread > 0 && (
                                                         <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
@@ -362,14 +453,9 @@ export default function HomeownerMessagesPage() {
                                 })}
                             </div>
                         ) : (
-                            <div className="p-16 text-center space-y-4 opacity-40">
-                                <div className="w-20 h-20 bg-accent/30 rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
-                                    <MessageSquare size={32} />
-                                </div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em]">No active inquiries</p>
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground max-w-[180px] mx-auto">
-                                    When tenants message your listings, they will appear here.
-                                </p>
+                            <div className="p-12 text-center space-y-4 opacity-40">
+                                <MessageSquare size={48} className="mx-auto text-muted-foreground" />
+                                <p className="text-sm font-black uppercase tracking-widest">No chats yet</p>
                             </div>
                         )}
                     </div>
@@ -383,8 +469,8 @@ export default function HomeownerMessagesPage() {
                     {activeChat ? (
                         <>
                             {/* Chat Header */}
-                            <header className="h-24 border-b border-border flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-                                <div className="flex items-center gap-5">
+                            <header className="h-20 border-b border-border flex items-center justify-between px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                                <div className="flex items-center gap-4">
                                     <button
                                         onClick={() => setShowChatOnMobile(false)}
                                         className="md:hidden p-2 hover:bg-accent rounded-full -ml-2 text-muted-foreground"
@@ -393,22 +479,19 @@ export default function HomeownerMessagesPage() {
                                     </button>
 
                                     <div className="relative">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-border shadow-sm">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-border shadow-sm">
                                             <img
                                                 src={getOtherParticipant(activeChat)?.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${getOtherParticipant(activeChat)?.name}`}
                                                 alt=""
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
                                     </div>
 
                                     <div>
-                                        <h2 className="font-black text-sm uppercase tracking-tight">{getOtherParticipant(activeChat)?.name || "Client User"}</h2>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-green-600 flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                            Active Client
-                                        </p>
+                                        <h2 className="font-black text-sm">{getOtherParticipant(activeChat)?.name || "Homeowner"}</h2>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-green-600">Online now</p>
                                     </div>
                                 </div>
 
@@ -416,25 +499,24 @@ export default function HomeownerMessagesPage() {
                             </header>
 
                             {/* Messages Scroll Area */}
-                            <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar bg-[#fcfcfc] custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-[#fcfcfc] custom-scrollbar">
                                 <div className="max-w-3xl mx-auto space-y-6">
-                                    <div className="text-center py-10">
-                                        <div className="inline-block px-5 py-2 bg-accent/50 rounded-full text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                                            Private Property Inquiry Channel
+                                    <div className="text-center py-8">
+                                        <div className="inline-block px-4 py-1.5 bg-accent/50 rounded-full text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                                            This conversation is encrypted and secure
                                         </div>
                                     </div>
 
                                     {messages.map((msg, i) => {
                                         const isMe = msg.senderId === auth.currentUser?.uid;
                                         // Tenant is Sender (Left), Homeowner is Response (Right)
-                                        // On this page, "Me" is the homeowner
                                         const isHomeownerMessage = msg.senderId === activeChat.homeownerId;
                                         return (
                                             <div
                                                 key={msg.id}
-                                                className={cn("flex items-end gap-3.5", isHomeownerMessage ? "flex-row-reverse" : "flex-row")}
+                                                className={cn("flex items-end gap-3", isHomeownerMessage ? "flex-row-reverse" : "flex-row")}
                                             >
-                                                <div className="w-9 h-9 rounded-full overflow-hidden border border-border flex-shrink-0 animate-in fade-in zoom-in duration-300">
+                                                <div className="w-8 h-8 rounded-full overflow-hidden border border-border flex-shrink-0 animate-in fade-in slide-in-from-left-2 duration-300">
                                                     <img
                                                         src={activeChat.participantData[msg.senderId]?.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId}`}
                                                         alt=""
@@ -444,7 +526,7 @@ export default function HomeownerMessagesPage() {
 
                                                 {msg.type === "image" ? (
                                                     // Image — no bubble background
-                                                    <div className="max-w-[75%] md:max-w-[60%] animate-in slide-in-from-bottom-2 duration-300">
+                                                    <div className="max-w-[80%] md:max-w-[65%] animate-in zoom-in-95 duration-300">
                                                         <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
                                                             <img
                                                                 src={msg.fileUrl}
@@ -453,23 +535,23 @@ export default function HomeownerMessagesPage() {
                                                             />
                                                         </a>
                                                         <div className={cn(
-                                                            "flex items-center gap-2 mt-1 text-[8px] font-black uppercase opacity-60",
+                                                            "flex items-center gap-1.5 mt-1 text-[8px] font-black uppercase opacity-60",
                                                             isHomeownerMessage ? "justify-end text-foreground" : "justify-start text-muted-foreground"
                                                         )}>
                                                             {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending..."}
-                                                            {isMe && <CheckCheck size={11} />}
+                                                            {isMe && <CheckCheck size={10} />}
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     // Text or File — standard bubble
                                                     <div className={cn(
-                                                        "max-w-[75%] md:max-w-[60%] p-5 rounded-2xl text-sm font-medium shadow-sm transition-all duration-300 animate-in slide-in-from-bottom-2",
+                                                        "max-w-[80%] md:max-w-[65%] p-4 rounded-2xl text-sm font-medium shadow-sm transition-all duration-300 animate-in zoom-in-95",
                                                         isHomeownerMessage
                                                             ? "bg-primary text-white rounded-br-none shadow-primary/10"
                                                             : "bg-white border border-border/60 text-foreground rounded-bl-none"
                                                     )}>
                                                         <div className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-50">
-                                                            {activeChat.participantData[msg.senderId]?.name || (isHomeownerMessage ? "Homeowner" : "Tenant")}
+                                                            {activeChat.participantData[msg.senderId]?.name || (isHomeownerMessage ? "Homeowner" : "Client")}
                                                         </div>
                                                         {msg.type === "file" ? (
                                                             <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" download={msg.fileName}
@@ -483,11 +565,11 @@ export default function HomeownerMessagesPage() {
                                                             msg.text
                                                         )}
                                                         <div className={cn(
-                                                            "flex items-center gap-2 justify-end mt-1.5 text-[8px] font-black uppercase opacity-60",
+                                                            "flex items-center gap-1.5 justify-end mt-1 text-[8px] font-black uppercase opacity-60",
                                                             isMe ? "text-white" : "text-muted-foreground"
                                                         )}>
                                                             {msg.createdAt?.toDate ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending..."}
-                                                            {isMe && <CheckCheck size={11} />}
+                                                            {isMe && <CheckCheck size={10} />}
                                                         </div>
                                                     </div>
                                                 )}
@@ -499,9 +581,9 @@ export default function HomeownerMessagesPage() {
                             </div>
 
                             {/* Input Area */}
-                            <footer className="p-8 bg-white border-t border-border">
+                            <footer className="p-6 bg-white border-t border-border">
                                 <div className="max-w-3xl mx-auto">
-                                    <form onSubmit={handleSend} className="relative flex items-end gap-4">
+                                    <form onSubmit={handleSend} className="relative flex items-end gap-3">
                                         {/* Hidden file input */}
                                         <input
                                             ref={fileInputRef}
@@ -510,14 +592,14 @@ export default function HomeownerMessagesPage() {
                                             className="hidden"
                                             onChange={handleFileUpload}
                                         />
-                                        <div className="flex items-center gap-1 mb-1.5">
+                                        <div className="flex items-center gap-1 mb-1">
                                             <button
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={isUploading}
-                                                className="p-3 hover:bg-accent rounded-xl text-primary transition-all active:scale-90 disabled:opacity-40"
+                                                className="p-2.5 hover:bg-accent rounded-xl text-primary transition-all active:scale-95 disabled:opacity-40"
                                             >
-                                                <Plus size={22} />
+                                                <Plus size={20} />
                                             </button>
                                         </div>
 
@@ -531,14 +613,14 @@ export default function HomeownerMessagesPage() {
                                                         handleSend(e as any);
                                                     }
                                                 }}
-                                                placeholder="Write a professional response..."
-                                                className="w-full min-h-[56px] max-h-36 bg-accent/30 border border-transparent rounded py-4.5 pl-6 pr-14 text-sm font-medium transition-all duration-300 outline-none focus:bg-white focus:border-primary/20 resize-none no-scrollbar"
+                                                placeholder="Ask something about the sanctuary..."
+                                                className="w-full min-h-[52px] max-h-32 bg-accent/30 border border-transparent rounded py-4 pl-5 pr-12 text-sm font-medium transition-all duration-300 outline-none focus:bg-white focus:border-primary/20 resize-none no-scrollbar "
                                             />
                                             <button
                                                 type="submit"
                                                 disabled={!newMessage.trim()}
                                                 className={cn(
-                                                    "absolute right-2.5 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shadow-xl active:scale-90",
+                                                    "absolute right-2 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 shadow-lg active:scale-90",
                                                     newMessage.trim()
                                                         ? "bg-primary text-white shadow-primary/20"
                                                         : "bg-accent/50 text-muted-foreground"
@@ -548,29 +630,29 @@ export default function HomeownerMessagesPage() {
                                             </button>
                                         </div>
                                     </form>
-                                    <p className="text-center text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mt-5 italic">
-                                        Secure end-to-end encrypted property channel
+                                    <p className="text-center text-[8px] font-black uppercase tracking-widest text-muted-foreground/30 mt-4 italic">
+                                        Your messages are protected by LODGEME end-to-end encryption
                                     </p>
                                 </div>
                             </footer>
                         </>
                     ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center p-16 bg-[#fcfcfc]">
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-[#fcfcfc]">
                             <Reveal direction="up">
-                                <div className="space-y-8">
-                                    <div className="w-28 h-28 bg-primary/5 rounded-full flex items-center justify-center mx-auto text-primary/20 animate-pulse">
-                                        <MessageSquare size={56} />
+                                <div className="space-y-6">
+                                    <div className="w-24 h-24 bg-primary/5 rounded-full flex items-center justify-center mx-auto text-primary/20 animate-pulse">
+                                        <MessageSquare size={48} />
                                     </div>
                                     <div>
-                                        <h3 className="text-3xl font-black italic font-outfit uppercase tracking-tighter">Your Message Center</h3>
-                                        <p className="text-muted-foreground max-w-sm mx-auto text-sm font-medium mt-3 leading-relaxed">
-                                            Select a tenant from the inbox to discuss property details, schedule tours, or finalize leasing agreements.
+                                        <h3 className="text-2xl font-black italic">Your Conversations</h3>
+                                        <p className="text-muted-foreground max-w-xs mx-auto text-sm font-medium mt-2 leading-relaxed">
+                                            Select a homeowner from the sidebar to continue your journey or start a new inquiry from any property listing.
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-4 justify-center pt-10 opacity-30">
-                                        <div className="h-[1px] w-12 bg-muted-foreground" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Business Continuity</span>
-                                        <div className="h-[1px] w-12 bg-muted-foreground" />
+                                    <div className="flex items-center gap-3 justify-center pt-8 opacity-30">
+                                        <div className="h-[1px] w-8 bg-muted-foreground" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Sanctuary Awaits</span>
+                                        <div className="h-[1px] w-8 bg-muted-foreground" />
                                     </div>
                                 </div>
                             </Reveal>
@@ -578,6 +660,15 @@ export default function HomeownerMessagesPage() {
                     )}
                 </section>
             </div>
-        </div>
+
+            <ProfileModal
+                isOpen={isProfileOpen}
+                onCloseAction={() => setIsProfileOpen(false)}
+            />
+            <NotificationsModal
+                isOpen={isNotificationsOpen}
+                onCloseAction={() => setIsNotificationsOpen(false)}
+            />
+        </main>
     );
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
+import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
-import { TrendingUp, BarChart3, Users, Clock, Home, Info } from "lucide-react";
+import { TrendingUp, BarChart3, Users, Clock, Home, Info, Send, MapPin, Wallet, BedDouble, Bath } from "lucide-react";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -31,6 +32,7 @@ export default function MarketInsightPage() {
     });
     const [chartData, setChartData] = useState<any[]>([]);
     const [distributionData, setDistributionData] = useState<any[]>([]);
+    const [recentInterests, setRecentInterests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchInsights = async (uid: string) => {
@@ -99,6 +101,7 @@ export default function MarketInsightPage() {
             });
             setChartData(formattedChartData);
             setDistributionData(formattedDistribution);
+            setRecentInterests(snapInt.docs.slice(0, 5).map(doc => ({ id: doc.id, ...doc.data() })));
         } catch (err) {
             console.error("Error fetching insights:", err);
         } finally {
@@ -136,8 +139,9 @@ export default function MarketInsightPage() {
     return (
         <div className="min-h-screen bg-[#fafafa] flex">
             <HomeownerSidebar />
+            <HomeownerHeader />
 
-            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0">
+            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0 pt-16">
                 <div className="max-w-6xl mx-auto">
                     <div className="mb-12">
                         <h1 className="text-3xl lg:text-4xl font-black">Market Insights</h1>
@@ -316,6 +320,84 @@ export default function MarketInsightPage() {
                             </div>
                         </Reveal>
                     )}
+                    {/* Recent Tenant Interests Feed */}
+                    <Reveal width="100%" direction="up" delay={0.7}>
+                        <div className="mt-8 bg-white border border-border rounded-2xl p-8 shadow-sm mb-12">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-green-50 text-green-600 rounded">
+                                        <Send size={20} />
+                                    </div>
+                                    <h3 className="text-xl font-black">Tenant Interest Feed</h3>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-accent px-3 py-1 rounded-full">Live Demand</span>
+                            </div>
+
+                            <div className="space-y-6">
+                                {recentInterests.length > 0 ? (
+                                    recentInterests.map((interest, i) => (
+                                        <div key={interest.id} className="group p-6 bg-accent/20 rounded-xl hover:bg-white hover:shadow-md hover:border-primary/20 border border-transparent transition-all">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden border border-primary/20">
+                                                        {interest.userPhoto ? (
+                                                            <img src={interest.userPhoto} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Users size={20} />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-base">{interest.userName || "Tenant"}</h4>
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin size={10} className="text-primary" />
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{interest.location || "Anywhere"}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-bold mb-1">
+                                                        <Clock size={12} />
+                                                        {interest.createdAt?.toDate ? new Date(interest.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                                                    </div>
+                                                    <div className="text-[10px] font-black text-primary bg-primary/5 px-2 py-1 rounded">
+                                                        Budget: ₦{Number(interest.budget).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 bg-white/50 p-3 rounded-lg border border-border/30">
+                                                <div className="flex items-center gap-2">
+                                                    <BedDouble size={14} className="text-primary/60" />
+                                                    <span className="text-xs font-bold">{interest.beds || 0} Beds</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Bath size={14} className="text-primary/60" />
+                                                    <span className="text-xs font-bold">{interest.baths || 0} Baths</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 col-span-2">
+                                                    <Wallet size={14} className="text-primary/60" />
+                                                    <span className="text-xs font-bold">₦{Number(interest.budget).toLocaleString()} / yr</span>
+                                                </div>
+                                            </div>
+
+                                            <p className="text-sm font-medium text-foreground/80 italic bg-white/40 p-4 rounded-lg border-l-4 border-primary/20 mb-4">
+                                                "{interest.content}"
+                                            </p>
+                                            <div className="flex items-center justify-end">
+                                                <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1">
+                                                    Contact Tenant <TrendingUp size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12 text-muted-foreground italic">
+                                        No recent interests found in the market.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Reveal>
                 </div>
             </main>
         </div>

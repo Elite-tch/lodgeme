@@ -7,7 +7,8 @@ import {
     TrendingUp,
     MessageSquare,
     UserCircle,
-    LogOut
+    LogOut,
+    Users
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,6 +39,7 @@ export const HomeownerSidebar = () => {
         { name: "My Listings", icon: Home, href: "/dashboard/homeowner/listings" },
         { name: "Add Property", icon: PlusCircle, href: "/dashboard/homeowner/add" },
         { name: "Market Insight", icon: TrendingUp, href: "/dashboard/homeowner/insight" },
+        { name: "Client Interests", icon: Users, href: "/dashboard/homeowner/interests" },
         { name: "Messages", icon: MessageSquare, href: "/dashboard/homeowner/messages" },
         { name: "Profile", icon: UserCircle, href: "/dashboard/homeowner/profile" },
     ];

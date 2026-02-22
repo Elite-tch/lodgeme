@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, query, collection, where, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { setDoc, deleteDoc, doc, where, collection, query, getDocs, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -15,7 +15,7 @@ import {
     Bath,
     Droplets,
     ChevronLeft,
-    Heart,
+    Bookmark,
     Share2,
     ShieldCheck,
     Clock,
@@ -38,6 +38,7 @@ export default function PropertyDetailsPage() {
     const [homeowner, setHomeowner] = useState<any>(null);
     const [homeownerPropertiesCount, setHomeownerPropertiesCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [isFavorited, setIsFavorited] = useState(false);
     const [activeImage, setActiveImage] = useState(0);
 
     // Modal States
@@ -85,7 +86,42 @@ export default function PropertyDetailsPage() {
         };
 
         fetchPropertyData();
+
+        // Check if favorited
+        const checkFavorite = async () => {
+            if (auth.currentUser && id) {
+                const favId = `${auth.currentUser.uid}_${id}`;
+                const favSnap = await getDoc(doc(db, "favorites", favId));
+                setIsFavorited(favSnap.exists());
+            }
+        };
+        checkFavorite();
     }, [id, router]);
+
+    const toggleFavorite = async () => {
+        if (!auth.currentUser) {
+            router.push("/auth/login");
+            return;
+        }
+
+        const favId = `${auth.currentUser.uid}_${id}`;
+
+        try {
+            if (isFavorited) {
+                await deleteDoc(doc(db, "favorites", favId));
+                setIsFavorited(false);
+            } else {
+                await setDoc(doc(db, "favorites", favId), {
+                    userId: auth.currentUser.uid,
+                    propertyId: id,
+                    createdAt: new Date().toISOString()
+                });
+                setIsFavorited(true);
+            }
+        } catch (error) {
+            console.error("Error toggling favorite:", error);
+        }
+    };
 
     if (loading) {
         return (
@@ -105,6 +141,35 @@ export default function PropertyDetailsPage() {
     const images = property.images && property.images.length > 0
         ? property.images
         : ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop"];
+
+    const timeAgo = (date: any) => {
+        if (!date) return "Just now";
+        try {
+            const now = new Date();
+            const past = date.toDate ? date.toDate() : new Date(date);
+            const diffInMs = now.getTime() - past.getTime();
+            const diffInSecs = Math.floor(diffInMs / 1000);
+            const diffInMins = Math.floor(diffInSecs / 60);
+            const diffInHrs = Math.floor(diffInMins / 60);
+            const diffInDays = Math.floor(diffInHrs / 24);
+
+            if (diffInDays > 0) return diffInDays === 1 ? "1 day ago" : `${diffInDays} days ago`;
+            if (diffInHrs > 0) return diffInHrs === 1 ? "1 hour ago" : `${diffInHrs} hours ago`;
+            if (diffInMins > 0) return diffInMins === 1 ? "1 min ago" : `${diffInMins} mins ago`;
+            return "Just now";
+        } catch (e) {
+            return "Just now";
+        }
+    };
+
+    const handleMessageOwner = () => {
+        if (!auth.currentUser) {
+            router.push("/auth/login");
+            return;
+        }
+        // Redirect to messages with owner context
+        router.push(`/dashboard/client/messages?ownerId=${property.ownerUid}&propertyId=${property.id}`);
+    };
 
     return (
         <main className="min-h-screen bg-[#fafafa] pb-32 lg:pb-12">
@@ -131,91 +196,93 @@ export default function PropertyDetailsPage() {
                         <div>
 
 
-                        {/* Image Gallery */}
-                        <Reveal direction="up">
-                            <div className="space-y-4 w-[500px]">
-                                <div className="relative aspect-[4/3] rounded overflow-hidden  ">
-                                    <Image
-                                        src={images[activeImage]}
-                                        alt={property.title}
-                                        fill
-                                        className="object-cover transition-transform duration-1000"
-                                    />
-                                    <div className="absolute top-4 right-4 flex gap-2">
-                                        <button className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-muted-foreground hover:text-red-500 transition-all shadow-lg active:scale-90">
-                                            <Heart size={20} />
-                                        </button>
-                                        <button className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-muted-foreground hover:text-primary transition-all shadow-lg active:scale-90">
-                                            <Share2 size={20} />
-                                        </button>
-                                    </div>
-
-                                </div>
-
-                                {images.length > 1 && (
-                                    <div className="flex gap-4 justify-center overflow-x-auto pb-2 no-scrollbar">
-                                        {images.map((img: string, idx: number) => (
+                            {/* Image Gallery */}
+                            <Reveal direction="up">
+                                <div className="space-y-4 w-[500px]">
+                                    <div className="relative aspect-[4/3] rounded overflow-hidden  ">
+                                        <Image
+                                            src={images[activeImage]}
+                                            alt={property.title}
+                                            fill
+                                            className="object-cover transition-transform duration-1000"
+                                        />
+                                        <div className="absolute top-4 right-4 flex gap-2">
                                             <button
-                                                key={idx}
-                                                onClick={() => setActiveImage(idx)}
-                                                className={`relative w-24 h-20 rounded overflow-hidden shrink-0 transition-all ${activeImage === idx ? 'ring-2 ring-primary ring-offset-2 scale-95' : 'opacity hover:opacity-100'}`}
-                                            >
-                                                <Image src={img} alt="" fill className="object-cover" />
+                                                onClick={toggleFavorite}
+                                                className={`w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center transition-all shadow-lg active:scale-90 ${isFavorited ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}>
+                                                <Bookmark size={20} fill={isFavorited ? "currentColor" : "none"} />
                                             </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </Reveal>
-
-                        {/* Homeowner Section */}
-                        <Reveal direction="up" delay={0.2}>
-                            <div className=" rounded p-6 shadow-sm border border-border/50 mt-8 w-[500px]">
-                              
-                              <div className="pb-5 flex items-center justify-end gap-6">
-                                    <div className="flex items-center gap-1.5 grayscale opacity-60">
-                                        <CheckCircle2 size={14} className="text-blue-500" />
-                                        <span className="text-[9px] font-black uppercase tracking-widest">Account Active</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-primary/10 shadow-lg">
-                                            <Image
-                                                src={homeowner?.photoURL || homeowner?.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
-                                                alt={homeowner?.fullName || "Homeowner"}
-                                                fill
-                                                className="object-cover"
-                                            />
+                                            <button className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-muted-foreground hover:text-primary transition-all shadow-lg active:scale-90">
+                                                <Share2 size={20} />
+                                            </button>
                                         </div>
-                                        <div>
-                                            <h4 className="text-lg font-black text-foreground leading-tight">{homeowner?.fullName || property.ownerName || "Premium Homeowner"}</h4>
-                                            <div className="flex items-center gap-1.5 text-muted-foreground font-bold text-xs uppercase tracking-widest mt-1">
-                                                <MapPin size={12} className="text-primary" />
-                                                <span>{homeowner?.location || "Lagos, Nigeria"}</span>
+
+                                    </div>
+
+                                    {images.length > 1 && (
+                                        <div className="flex gap-4 justify-center overflow-x-auto pb-2 no-scrollbar">
+                                            {images.map((img: string, idx: number) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setActiveImage(idx)}
+                                                    className={`relative w-24 h-20 rounded overflow-hidden shrink-0 transition-all ${activeImage === idx ? 'ring-2 ring-primary ring-offset-2 scale-95' : 'opacity hover:opacity-100'}`}
+                                                >
+                                                    <Image src={img} alt="" fill className="object-cover" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </Reveal>
+
+                            {/* Homeowner Section */}
+                            <Reveal direction="up" delay={0.2}>
+                                <div className=" rounded p-6 shadow-sm border border-border/50 mt-8 w-[500px]">
+
+                                    <div className="pb-5 flex items-center justify-end gap-6">
+                                        <div className="flex items-center gap-1.5 grayscale opacity-60">
+                                            <CheckCircle2 size={14} className="text-blue-500" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Account Active</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-primary/10 shadow-lg">
+                                                <Image
+                                                    src={homeowner?.photoURL || homeowner?.profileImage || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                                                    alt={homeowner?.fullName || "Homeowner"}
+                                                    fill
+                                                    className="object-cover"
+                                                />
                                             </div>
-                                            <div className="mt-2 py-2 flex items-center gap-2 rounded text-center ">
-                                        <div className="text-lg font-black text-primary leading-none">{homeownerPropertiesCount}</div>
-                                        <div className="text-[8px] font-black uppercase tracking-widest text-primary/60 mt-1">Properties</div>
-                                    </div>
+                                            <div>
+                                                <h4 className="text-lg font-black text-foreground leading-tight">{homeowner?.fullName || property.ownerName || "Premium Homeowner"}</h4>
+                                                <div className="flex items-center gap-1.5 text-muted-foreground font-bold text-xs uppercase tracking-widest mt-1">
+                                                    <MapPin size={12} className="text-primary" />
+                                                    <span>{homeowner?.location || "Lagos, Nigeria"}</span>
+                                                </div>
+                                                <div className="mt-2 py-2 flex items-center gap-2 rounded text-center ">
+                                                    <div className="text-lg font-black text-primary leading-none">{homeownerPropertiesCount}</div>
+                                                    <div className="text-[8px] font-black uppercase tracking-widest text-primary/60 mt-1">Properties</div>
+                                                </div>
+                                            </div>
+
                                         </div>
-                                        
+
                                     </div>
-                                    
+
+                                    <Link href={`/dashboard/client/homeowner/${property.ownerUid}`} className="flex justify-center">
+                                        <Button variant="outline" className="w-fit h-12 rounded font-black border border-border/50 hover:bg-accent hover:border-primary/20 transition-all flex gap-2 group">
+                                            <User size={18} className="text-primary" />
+                                            View Public Profile
+                                            <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                                        </Button>
+                                    </Link>
+
+
                                 </div>
-
-                                <Link href={`/dashboard/client/homeowner/${property.ownerUid}`} className="flex justify-center">
-                                    <Button variant="outline" className="w-fit h-12 rounded font-black border border-border/50 hover:bg-accent hover:border-primary/20 transition-all flex gap-2 group">
-                                        <User size={18} className="text-primary" />
-                                        View Public Profile
-                                        <ArrowUpRight size={16} className="opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
-                                    </Button>
-                                </Link>
-
-                              
-                            </div>
-                        </Reveal>
+                            </Reveal>
                         </div>
                         <div>
                             {/* Title & Stats */}
@@ -259,7 +326,7 @@ export default function PropertyDetailsPage() {
                                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Posted On</span>
                                             <div className="flex items-center gap-2">
                                                 <Clock size={20} className="text-orange-500" />
-                                                <span className="text-md font-bold">2 days ago</span>
+                                                <span className="text-md font-bold">{timeAgo(property.createdAt)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -291,11 +358,11 @@ export default function PropertyDetailsPage() {
 
                                                 <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
                                                     <Button
-                                                        onClick={() => setIsInterestOpen(true)}
+                                                        onClick={handleMessageOwner}
                                                         className="flex-1 h-12 rounded text-[13px] font-black shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap px-4"
                                                     >
                                                         <MessageSquare size={16} />
-                                                        Express Interest
+                                                        Message Homeowner
                                                     </Button>
 
                                                     <Button
@@ -307,10 +374,7 @@ export default function PropertyDetailsPage() {
                                                     </Button>
                                                 </div>
 
-                                                <p className="text-center text-[10px] text-muted-foreground mt-6 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                                                    <ShieldCheck size={14} className="text-green-500" />
-                                                    Funds secured by LODGEME
-                                                </p>
+                                              
                                             </div>
                                         </div>
 

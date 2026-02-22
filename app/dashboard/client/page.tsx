@@ -5,11 +5,12 @@ import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
-import { PlusCircle, SlidersHorizontal, MapPin, Home, BedDouble, Bath, Droplets, ChevronRight, Heart, ArrowUpRight } from "lucide-react";
+import { PlusCircle, SlidersHorizontal, MapPin, Home, BedDouble, Bath, Droplets, ChevronRight, Bookmark, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { collection, query, limit, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { setDoc, deleteDoc, doc, where, collection, query, getDocs, limit } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 // Modals
 import { InterestModal } from "@/components/modals/InterestModal";
@@ -18,9 +19,12 @@ import { ProfileModal } from "@/components/modals/ProfileModal";
 import { NotificationsModal } from "@/components/modals/NotificationsModal";
 
 export default function ClientDashboard() {
+    const router = useRouter();
     const [properties, setProperties] = useState<any[]>([]);
+    const [favorites, setFavorites] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [activeFilters, setActiveFilters] = useState<any>(null);
 
     // Modal States
     const [isInterestOpen, setIsInterestOpen] = useState(false);
@@ -43,18 +47,85 @@ export default function ClientDashboard() {
         };
 
         fetchProperties();
+
+        // Fetch favorites
+        const fetchFavorites = async () => {
+            if (auth.currentUser) {
+                const favQ = query(collection(db, "favorites"), where("userId", "==", auth.currentUser.uid));
+                const favSnap = await getDocs(favQ);
+                setFavorites(favSnap.docs.map(doc => doc.data().propertyId));
+            }
+        };
+        fetchFavorites();
     }, []);
 
-    const handleApplyFilters = (filters: any) => {
-        console.log("Applying filters:", filters);
-        // Implement filtering logic here later
+    const toggleFavorite = async (e: React.MouseEvent, propertyId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!auth.currentUser) {
+            router.push("/auth/login");
+            return;
+        }
+
+        const isFav = favorites.includes(propertyId);
+        const favId = `${auth.currentUser.uid}_${propertyId}`;
+
+        try {
+            if (isFav) {
+                await deleteDoc(doc(db, "favorites", favId));
+                setFavorites(prev => prev.filter(id => id !== propertyId));
+            } else {
+                await setDoc(doc(db, "favorites", favId), {
+                    userId: auth.currentUser.uid,
+                    propertyId: propertyId,
+                    createdAt: new Date().toISOString()
+                });
+                setFavorites(prev => [...prev, propertyId]);
+            }
+        } catch (error) {
+            console.error("Error toggling favorite:", error);
+        }
     };
 
-    const filteredProperties = properties.filter(prop =>
-        prop.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prop.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prop.type?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleApplyFilters = (filters: any) => {
+        setActiveFilters(filters);
+    };
+
+    const filteredProperties = properties.filter(prop => {
+        // Search Filter
+        const matchesSearch = !searchQuery ||
+            prop.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            prop.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            prop.type?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        // Custom Filters
+        if (activeFilters) {
+            const { minPrice, maxPrice, beds, baths, type, waterSource } = activeFilters;
+
+            if (minPrice && Number(prop.price) < Number(minPrice)) return false;
+            if (maxPrice && Number(prop.price) > Number(maxPrice)) return false;
+
+            if (beds && !prop.beds?.toString().includes(beds.replace(/[^0-9]/g, ""))) {
+                // Check if the number of beds matches (placeholder was "e.g. 2 Bedrooms")
+                // We'll be flexible: if prop.beds is 2 and filter is "2", it matches.
+                const numBeds = beds.replace(/[^0-9]/g, "");
+                if (numBeds && prop.beds?.toString() !== numBeds) return false;
+            }
+
+            if (baths && !prop.baths?.toString().includes(baths.replace(/[^0-9]/g, ""))) {
+                const numBaths = baths.replace(/[^0-9]/g, "");
+                if (numBaths && prop.baths?.toString() !== numBaths) return false;
+            }
+
+            if (type && !prop.type?.toLowerCase().includes(type.toLowerCase())) return false;
+            if (waterSource && !prop.waterSource?.toLowerCase().includes(waterSource.toLowerCase())) return false;
+        }
+
+        return true;
+    });
 
     return (
         <main className="min-h-screen bg-[#fafafa] pb-24 lg:pb-0">
@@ -119,20 +190,20 @@ export default function ClientDashboard() {
                                                 fill
                                                 className="object-cover transition-transform duration-700 "
                                             />
-                                            {/* Top Heart Overlay */}
-                                            <div className="absolute top-3 right-3">
-                                                <button className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-muted-foreground hover:text-red-500 transition-all shadow-sm active:scale-90">
-                                                    <Heart size={16} />
-                                                </button>
-                                            </div>
-
-
                                         </div>
 
                                         {/* Content Section */}
                                         <div className="p-4 flex flex-col flex-1">
-                                            <div className="text-[10px] font-black uppercase tracking-[0.15em] text-primary/60 mb-1">
-                                                {prop.type || "Apartment"}
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="text-[10px] font-black uppercase tracking-[0.15em] text-primary/60">
+                                                    {prop.type || "Apartment"}
+                                                </div>
+                                                <button
+                                                    onClick={(e) => toggleFavorite(e, prop.id)}
+                                                    className={`w-7 h-7 rounded-full transition-all flex items-center justify-center active:scale-90 ${favorites.includes(prop.id) ? 'bg-primary text-white' : 'bg-accent/50 text-primary hover:bg-primary hover:text-white'}`}
+                                                >
+                                                    <Bookmark size={14} fill={favorites.includes(prop.id) ? "currentColor" : "none"} />
+                                                </button>
                                             </div>
                                             <h3 className="font-bold text-base text-foreground line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                                                 {prop.title}

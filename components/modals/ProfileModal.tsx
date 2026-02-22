@@ -1,13 +1,14 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, Settings, LogOut, ChevronRight, Bookmark, ShieldCheck, MapPin, Send } from "lucide-react";
+import { X, User, LogOut, ChevronRight, Bookmark, ShieldCheck, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import Link from "next/link";
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -17,6 +18,7 @@ interface ProfileModalProps {
 export const ProfileModal = ({ isOpen, onCloseAction }: ProfileModalProps) => {
     const router = useRouter();
     const [userData, setUserData] = useState<any>(null);
+    const [stats, setStats] = useState({ interests: 0, favorites: 0 });
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -25,6 +27,20 @@ export const ProfileModal = ({ isOpen, onCloseAction }: ProfileModalProps) => {
                 if (userDoc.exists()) {
                     setUserData(userDoc.data());
                 }
+
+                // Fetch stats
+                const intQ = query(collection(db, "interests"), where("uid", "==", auth.currentUser.uid));
+                const favQ = query(collection(db, "favorites"), where("userId", "==", auth.currentUser.uid));
+
+                const [intSnap, favSnap] = await Promise.all([
+                    getDocs(intQ),
+                    getDocs(favQ)
+                ]);
+
+                setStats({
+                    interests: intSnap.size,
+                    favorites: favSnap.size
+                });
             }
         };
         if (isOpen) fetchUser();
@@ -97,15 +113,14 @@ export const ProfileModal = ({ isOpen, onCloseAction }: ProfileModalProps) => {
                                 )}
                             </div>
 
-                            {/* Account Stats */}
                             <div className="grid grid-cols-2 gap-4 mb-10">
                                 <div className="bg-accent/50 p-4 rounded text-center border border-border/30">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Interests</p>
-                                    <p className="text-xl font-black text-foreground">0</p>
+                                    <p className="text-xl font-black text-foreground">{stats.interests}</p>
                                 </div>
                                 <div className="bg-accent/50 p-4 rounded text-center border border-border/30">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Favorites</p>
-                                    <p className="text-xl font-black text-foreground">0</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Saved</p>
+                                    <p className="text-xl font-black text-foreground">{stats.favorites}</p>
                                 </div>
                             </div>
 
@@ -113,13 +128,14 @@ export const ProfileModal = ({ isOpen, onCloseAction }: ProfileModalProps) => {
                             <div className="space-y-1 mb-10">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-4 px-2">Account Management</p>
                                 {[
-                                    { name: "Personal Information", icon: User, href: "#" },
+                                    { name: "Personal Information", icon: User, href: "/dashboard/client/profile" },
                                     { name: "My Interests", icon: Send, href: "/dashboard/client/interests" },
                                     { name: "Saved Properties", icon: Bookmark, href: "/dashboard/client/favorites" },
-                                    { name: "Settings & Privacy", icon: Settings, href: "#" },
                                 ].map((item) => (
-                                    <button
+                                    <Link
                                         key={item.name}
+                                        href={item.href}
+                                        onClick={onCloseAction}
                                         className="w-full flex items-center justify-between p-4 rounded hover:bg-accent/50 transition-all font-bold group"
                                     >
                                         <div className="flex items-center gap-4 text-foreground/80 group-hover:text-primary transition-colors">
@@ -129,7 +145,7 @@ export const ProfileModal = ({ isOpen, onCloseAction }: ProfileModalProps) => {
                                             <span className="text-sm">{item.name}</span>
                                         </div>
                                         <ChevronRight size={16} className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                                    </button>
+                                    </Link>
                                 ))}
                             </div>
 

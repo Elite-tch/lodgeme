@@ -24,14 +24,16 @@ export const FilterModal = ({ isOpen, onCloseAction, onApplyAction }: FilterModa
     });
 
     const handleReset = () => {
-        setFilters({
+        const resetFilters = {
             minPrice: "",
             maxPrice: "",
             beds: "",
             baths: "",
             type: "",
             waterSource: "",
-        });
+        };
+        setFilters(resetFilters);
+        onApplyAction(resetFilters);
     };
 
     const handleApply = () => {

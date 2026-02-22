@@ -207,15 +207,12 @@ export default function HomeownerPublicProfile() {
                                 </div>
 
                                 <div className="flex items-center gap-3 md:mb-4">
-                                    <Button className="h-11 px-6 rounded-lg font-black shadow-lg shadow-primary/20 flex items-center gap-2">
+                                    <Button
+                                        onClick={() => router.push(`/dashboard/client/messages?ownerId=${id}`)}
+                                        className="h-11 px-6 rounded-lg font-black shadow-lg shadow-primary/20 flex items-center gap-2"
+                                    >
                                         <MessageCircle size={18} />
                                         Message
-                                    </Button>
-                                    <Button variant="outline" className="h-11 px-4 rounded-lg bg-[#E4E6EB] border-transparent">
-                                        <Share2 size={18} />
-                                    </Button>
-                                    <Button variant="outline" className="h-11 px-4 rounded-lg bg-[#E4E6EB] border-transparent">
-                                        <MoreHorizontal size={18} />
                                     </Button>
                                 </div>
                             </div>

@@ -46,6 +46,7 @@ export const DashboardNavbar = ({
                     <Image src="/logo.png" alt="LODGEME" width={100} height={28} className="h-8 w-auto" />
                 </Link>
 
+
                 <div className="h-4 w-[1px] bg-border mx-2 hidden sm:block" />
 
                 <Link

@@ -168,7 +168,7 @@ export default function AddPropertyPage() {
                 beds: Number(formData.beds),
                 baths: Number(formData.baths),
                 createdAt: serverTimestamp(),
-                status: "active",
+                status: "pending",
                 verified: false
             });
             setStep(5); // Success step

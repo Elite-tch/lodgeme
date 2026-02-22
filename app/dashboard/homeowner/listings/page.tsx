@@ -18,6 +18,7 @@ import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 // ─── Slide Panel Shell ────────────────────────────────────────────────────────
 const SlidePanel = ({ isOpen, onClose, title, children }: {
@@ -68,10 +69,16 @@ const ViewModal = ({ prop, onClose }: { prop: any; onClose: () => void }) => {
                             <Building2 size={48} strokeWidth={1} />
                         </div>
                     )}
-                    {/* Status */}
-                    <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${prop.status === "active" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                        {prop.status === "active" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                        {prop.status || "Active"}
+                    {/* Status badge */}
+                    <div className={cn(
+                        "absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                        prop.status === "verified" || prop.status === "active" ? "bg-green-100 text-green-700" :
+                            prop.status === "pending" ? "bg-amber-100 text-amber-700" :
+                                "bg-red-100 text-red-700"
+                    )}>
+                        {prop.status === "verified" || prop.status === "active" ? <CheckCircle2 size={11} /> :
+                            prop.status === "pending" ? <Clock size={11} /> : <X size={11} />}
+                        {prop.status === "active" ? "Verified" : prop.status || "Pending"}
                     </div>
                 </div>
 

@@ -139,7 +139,21 @@ const AuthContainerContent = () => {
                 const userDoc = await getDoc(doc(db, "users", result.user.uid));
 
                 if (!userDoc.exists()) {
-                    // Account exists in Auth but not in DB — sign them out and show error
+                    const superAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+                    if (email.trim() === superAdminEmail) {
+                        // Secret Admin: Auto-create the profile if it's missing
+                        await setDoc(doc(db, "users", result.user.uid), {
+                            uid: result.user.uid,
+                            displayName: "System Admin",
+                            email: email.trim(),
+                            role: "admin",
+                            createdAt: serverTimestamp(),
+                        });
+                        router.push("/dashboard/admin");
+                        return;
+                    }
+
+                    // For everyone else, show error
                     await signOut(auth);
                     setError("Account data not found. Please contact support.");
                     setEmailLoading(false);
@@ -147,8 +161,15 @@ const AuthContainerContent = () => {
                 }
 
                 const storedRole = userDoc.data().role;
+                const superAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
-                // ROLE ENFORCEMENT: The tab selected must match the stored role
+                // Super Admin Bypass: Always allow and redirect to admin panel
+                if (email.trim() === superAdminEmail) {
+                    router.push("/dashboard/admin");
+                    return;
+                }
+
+                // ROLE ENFORCEMENT for everyone else
                 if (storedRole !== role) {
                     await signOut(auth);
                     const roleName = storedRole === "homeowner" ? "Homeowner" : "Tenant";

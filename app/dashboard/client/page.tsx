@@ -35,7 +35,7 @@ export default function ClientDashboard() {
     useEffect(() => {
         const fetchProperties = async () => {
             try {
-                const q = query(collection(db, "properties"), limit(12));
+                const q = query(collection(db, "properties"), where("status", "==", "verified"), limit(12));
                 const querySnapshot = await getDocs(q);
                 const propertyList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setProperties(propertyList);

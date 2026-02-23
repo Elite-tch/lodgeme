@@ -180,7 +180,7 @@ export default function ClientDashboard() {
                         filteredProperties.map((prop, index) => (
                             <Reveal key={prop.id} direction="up" delay={index * 0.05}>
                                 <Link href={`/dashboard/client/property/${prop.id}`} className="group block h-full">
-                                    <div className="bg-white w-[300px] rounded-lg overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 h-full flex flex-col border border-border/50">
+                                    <div className="bg-white  rounded-lg overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 h-full flex flex-col border border-border/50">
 
                                         {/* Image Section - Flush with top */}
                                         <div className="relative aspect-[4/3] overflow-hidden">

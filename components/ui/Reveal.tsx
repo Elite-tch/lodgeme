@@ -2,6 +2,7 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface RevealProps {
     children: ReactNode;
@@ -13,7 +14,7 @@ interface RevealProps {
 
 export const Reveal = ({
     children,
-    width = "fit-content",
+    width,
     delay = 0.2,
     direction = "up",
     className
@@ -31,8 +32,8 @@ export const Reveal = ({
     return (
         <div
             ref={ref}
-            className={className}
-            style={{ position: "relative", width, overflow: "hidden" }}
+            className={cn("relative transition-all duration-300", className)}
+            style={{ width: width }}
         >
             <motion.div
                 variants={{
@@ -42,7 +43,7 @@ export const Reveal = ({
                 initial="hidden"
                 animate={isInView ? "visible" : "hidden"}
                 transition={{ duration: 0.6, delay, ease: "easeOut" }}
-                className={className}
+                className="w-full h-full"
             >
                 {children}
             </motion.div>

@@ -1,7 +1,5 @@
 "use client";
 
-import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
-import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -191,11 +189,8 @@ export default function AddPropertyPage() {
     const inputClasses = "h-14 rounded bg-accent/30 border-transparent focus:bg-white focus:border-primary/20 focus:ring-0 focus:outline-none transition-all font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
     return (
-        <div className="min-h-screen bg-[#fafafa] flex text-foreground">
-            <HomeownerSidebar />
-            <HomeownerHeader />
-
-            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0 pt-16">
+        <>
+            <main className="p-6 lg:p-12 pt-24 min-w-0">
                 <div className="max-w-3xl mx-auto">
                     {/* Progress Header */}
                     <div className="mb-12">
@@ -601,22 +596,7 @@ export default function AddPropertyPage() {
                     </AnimatePresence>
                 </div>
             </main>
-
-            {/* Mobile Nav */}
-            <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-border px-8 py-4 flex justify-between items-center shadow-2xl pb-safe">
-                <Link href="/dashboard/homeowner" className="text-muted-foreground flex flex-col items-center gap-1">
-                    <Home size={24} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Home</span>
-                </Link>
-                <div className="bg-primary text-white p-4 rounded-full -mt-12 shadow-xl shadow-primary/40 border-8 border-[#fafafa]">
-                    <PlusCircle size={28} />
-                </div>
-                <Link href="/dashboard/homeowner/profile" className="text-muted-foreground flex flex-col items-center gap-1">
-                    <UserCircle size={24} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Profile</span>
-                </Link>
-            </nav>
-        </div>
+        </>
     );
 }
 

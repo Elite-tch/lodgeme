@@ -192,13 +192,13 @@ export default function PropertyDetailsPage() {
 
                 <div className="">
                     {/* Left Column: Media & Description */}
-                    <div className=" flex justify-between">
+                    <div className=" flex justify-between md:flex-row flex-col gap-6">
                         <div>
 
 
                             {/* Image Gallery */}
                             <Reveal direction="up">
-                                <div className="space-y-4 w-[500px]">
+                                <div className="space-y-4 md:w-[500px]">
                                     <div className="relative aspect-[4/3] rounded overflow-hidden  ">
                                         <Image
                                             src={images[activeImage]}
@@ -237,7 +237,7 @@ export default function PropertyDetailsPage() {
 
                             {/* Homeowner Section */}
                             <Reveal direction="up" delay={0.2}>
-                                <div className=" rounded p-6 shadow-sm border border-border/50 mt-8 w-[500px]">
+                                <div className=" rounded p-6 shadow-sm border border-border/50 mt-8 ">
 
                                     <div className="pb-5 flex items-center justify-end gap-6">
                                         <div className="flex items-center gap-1.5 grayscale opacity-60">

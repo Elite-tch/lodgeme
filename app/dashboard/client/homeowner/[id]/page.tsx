@@ -145,8 +145,8 @@ export default function HomeownerPublicProfile() {
 
 
             {/* Profile Header */}
-            <div className=" mb-6">
-                <div >
+            <div className=" mb-6 ">
+                <div className="">
                     {/* Cover Photo */}
                     <div className="relative h-[250px] md:h-[250px] w-full bg-gradient-to-r from-primary/20 via-primary/10 to-accent/30  overflow-hidden group">
                         <Image
@@ -304,7 +304,7 @@ export default function HomeownerPublicProfile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {properties.slice(0, 2).map((prop, idx) => (
                                     <Reveal key={prop.id} direction="up" delay={idx * 0.05}>
-                                        <Link href={`/dashboard/client/property/${prop.id}`} className="group block w-[350px] h-full">
+                                        <Link href={`/dashboard/client/property/${prop.id}`} className="group block h-full">
                                             <div className="bg-white rounded overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 h-full flex flex-col border border-border/50">
                                                 {/* Image Section */}
                                                 <div className="relative aspect-[4/3] overflow-hidden">

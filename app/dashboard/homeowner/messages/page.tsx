@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
-import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import {
     MessageSquare,
@@ -276,11 +274,8 @@ export default function HomeownerMessagesPage() {
     );
 
     return (
-        <div className="h-screen bg-white flex overflow-hidden">
-            <HomeownerSidebar />
-            <HomeownerHeader />
-
-            <div className="flex-1 flex overflow-hidden lg:ml-64">
+        <>
+            <div className="flex-1 flex overflow-hidden h-[calc(100vh-64px)] pt-32 mt-[-64px]">
                 {/* Conversations Sidebar */}
                 <aside className={cn(
                     "w-full md:w-80 lg:w-96 border-r border-border flex flex-col bg-[#fcfcfc] transition-all duration-300",
@@ -578,6 +573,6 @@ export default function HomeownerMessagesPage() {
                     )}
                 </section>
             </div>
-        </div>
+        </>
     );
 }

@@ -35,16 +35,7 @@ export default function VerificationPage() {
     };
 
     return (
-        <main className="min-h-screen bg-white">
-            {/* Mini Navbar */}
-            <nav className="p-6 flex items-center gap-4 max-w-7xl mx-auto">
-                <Link href="/dashboard/homeowner">
-                    <Button variant="ghost" size="sm" className="rounded-full flex gap-2 font-bold">
-                        <ArrowLeft size={18} />
-                        Back to Dashboard
-                    </Button>
-                </Link>
-            </nav>
+        <main className="p-6 lg:p-12 pt-24 min-w-0">
 
             <div className="max-w-xl mx-auto px-6 py-12">
                 <div className="mb-12 text-center">

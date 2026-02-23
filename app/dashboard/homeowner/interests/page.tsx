@@ -1,7 +1,7 @@
 "use client";
 
-import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
-import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
+// import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
+// import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import {
     Send, MapPin, Wallet, BedDouble, Bath, Clock, Search, Users
@@ -46,11 +46,8 @@ export default function HomeownerClientInterestsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#fafafa] flex">
-            <HomeownerSidebar />
-            <HomeownerHeader />
-
-            <main className="flex-1 lg:ml-64 p-6 lg:p-10 mb-20 lg:mb-0 pt-16">
+        <>
+            <main className="p-6 lg:p-10 pt-24 min-w-0">
                 <div className="max-w-6xl mx-auto">
                     {/* Page Header */}
                     <Reveal direction="up">
@@ -102,7 +99,7 @@ export default function HomeownerClientInterestsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filtered.map((interest, idx) => (
                                 <Reveal key={interest.id} direction="up" delay={idx * 0.05}>
-                                    <div className="bg-white p-6 rounded w-[300px] h-[380px] shadow-sm border border-border/50 hover:border-primary/30 hover:shadow-md transition-all flex flex-col group overflow-hidden">
+                                    <div className="bg-white p-6 rounded  h-[380px] shadow-sm border border-border/50 hover:border-primary/30 hover:shadow-md transition-all flex flex-col group overflow-hidden">
 
                                         {/* Client info */}
                                         <div className="flex items-center gap-3 mb-5">
@@ -194,6 +191,6 @@ export default function HomeownerClientInterestsPage() {
                     )}
                 </div>
             </main>
-        </div>
+        </>
     );
 }

@@ -45,7 +45,7 @@ export const Hero = () => {
                     </Reveal>
 
                     <Reveal direction="right" delay={0.3}>
-                        <p className="text-xl text-muted-foreground mb-10 max-w-lg leading-relaxed font-medium">
+                        <p className="md:text-xl text-md text-gray-700 md:text-muted-foreground mb-10 max-w-lg leading-relaxed font-medium">
                             LODGEME bridges the gap between verified homeowners and prospect tenants.
                             Secure, remote, and convenient interactions for modern living.
                         </p>

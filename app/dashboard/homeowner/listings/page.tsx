@@ -1,7 +1,5 @@
 "use client";
 
-import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
-import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import {
     Building2, PlusCircle, MapPin, BedDouble, Bath, Eye, Pencil,
@@ -531,11 +529,8 @@ export default function MyListingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#fafafa] flex">
-            <HomeownerSidebar />
-            <HomeownerHeader />
-
-            <main className="flex-1 lg:ml-64 p-6 lg:p-10 mb-20 lg:mb-0 pt-16">
+        <>
+            <main className="p-6 lg:p-10 pt-24 min-w-0">
                 <div className="max-w-6xl mx-auto">
 
                     {/* Page Header */}
@@ -609,11 +604,11 @@ export default function MyListingsPage() {
                         </div>
                     )}
                 </div>
-            </main>
 
-            {/* Slide-in Modals */}
-            <ViewModal prop={viewProp} onClose={() => setViewProp(null)} />
-            <EditModal prop={editProp} onClose={() => setEditProp(null)} onSaved={handleSaved} />
-        </div>
+                {/* Slide-in Modals */}
+                <ViewModal prop={viewProp} onClose={() => setViewProp(null)} />
+                <EditModal prop={editProp} onClose={() => setEditProp(null)} onSaved={handleSaved} />
+            </main>
+        </>
     );
 }

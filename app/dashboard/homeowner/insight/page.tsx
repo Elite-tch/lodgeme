@@ -1,7 +1,5 @@
 "use client";
 
-import { HomeownerSidebar } from "@/components/layout/HomeownerSidebar";
-import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { TrendingUp, BarChart3, Users, Clock, Home, Info, Send, MapPin, Wallet, BedDouble, Bath } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -137,11 +135,8 @@ export default function MarketInsightPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#fafafa] flex">
-            <HomeownerSidebar />
-            <HomeownerHeader />
-
-            <main className="flex-1 lg:ml-64 p-6 lg:p-12 mb-20 lg:mb-0 pt-16">
+        <>
+            <main className="p-6 lg:p-12 pt-24 min-w-0">
                 <div className="max-w-6xl mx-auto">
                     <div className="mb-12">
                         <h1 className="text-3xl lg:text-4xl font-black">Market Insights</h1>
@@ -400,6 +395,6 @@ export default function MarketInsightPage() {
                     </Reveal>
                 </div>
             </main>
-        </div>
+        </>
     );
 }

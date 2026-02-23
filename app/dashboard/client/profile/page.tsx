@@ -101,11 +101,11 @@ export default function ClientProfilePage() {
                     </div>
                 </Reveal>
 
-                <div className="flex justify-center gap-10">
+                <div className="flex md:flex-row flex-col gap-4 justify-center gap-10">
                     {/* Sidebar */}
                     <div className="md:col-span-1  space-y-6">
                         <Reveal direction="left">
-                            <div className="bg-white p-6 rounded shadow-sm border border-border/50 flex flex-col items-center text-center">
+                            <div className="bg-white p-6 w-full rounded shadow-sm border border-border/50 flex flex-col items-center text-center">
                                 <div className="relative group">
                                     <div className="w-32 h-32 rounded-full bg-primary/10 border-4 border-accent flex items-center justify-center text-primary overflow-hidden">
                                         {userData?.photoURL ? (

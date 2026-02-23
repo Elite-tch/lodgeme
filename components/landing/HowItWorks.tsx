@@ -80,7 +80,7 @@ export const HowItWorks = () => {
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                         </div>
-                                        <div className="p-10 flex flex-col flex-grow">
+                                        <div className="md:p-10 p-6 flex flex-col flex-grow">
                                             <h4 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors duration-300">
                                                 {item.title}
                                             </h4>

@@ -1,138 +1,150 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
-import { Bed, Bath, MapPin, Heart } from "lucide-react";
+import { Bed, Bath, MapPin, Heart, Droplets } from "lucide-react";
 import Image from "next/image";
-
-const listings = [
-    {
-        id: 1,
-        image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2070&auto=format&fit=crop",
-        price: "₦150,000/yr",
-        address: "Victory Island, Lagos",
-        beds: 2,
-        baths: 2,
-        feature: "24/7 Power",
-        type: "Apartment",
-        isVerified: true,
-    },
-    {
-        id: 2,
-        image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop",
-        price: "₦250,000/yr",
-        address: "Asokoro, Abuja",
-        beds: 3,
-        baths: 3,
-        feature: "Serviced",
-        type: "Detached",
-        isVerified: true,
-    },
-    {
-        id: 3,
-        image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?q=80&w=2034&auto=format&fit=crop",
-        price: "₦80,000/yr",
-        address: "Iwo Road, Ibadan",
-        beds: 1,
-        baths: 1,
-        feature: "En-suite",
-        type: "Studio",
-        isVerified: false,
-    },
-    {
-        id: 4,
-        image: "https://images.unsplash.com/photo-1480074568708-e7b720bb3f09?q=80&w=2074&auto=format&fit=crop",
-        price: "₦300,000/yr",
-        address: "GRA, Port Harcourt",
-        beds: 4,
-        baths: 4,
-        feature: "Newly Built",
-        type: "Duplex",
-        isVerified: true,
-    },
-];
+import Link from "next/link";
+import { db, auth } from "@/lib/firebase";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 export const FeaturedListings = () => {
+    const [properties, setProperties] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchNewestProperties = async () => {
+            try {
+                // Fetch newest verified properties
+                const q = query(
+                    collection(db, "properties"),
+                    where("status", "==", "verified"),
+                    orderBy("createdAt", "desc"),
+                    limit(4)
+                );
+                const querySnapshot = await getDocs(q);
+                const propertyList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setProperties(propertyList);
+            } catch (error) {
+                console.error("Error fetching featured properties:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNewestProperties();
+
+        const unsub = onAuthStateChanged(auth, (u) => {
+            setUser(u);
+        });
+        return () => unsub();
+    }, []);
+
     return (
-        <section className="py-14 bg-white">
+        <section className="py-14 bg-white" id="listings">
             <div className="container mx-auto px-6">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-12">
                     <Reveal direction="right" delay={0.1}>
                         <div>
-                            <h2 className="text-4xl font-bold mb-4">Featured Listings</h2>
-                            <p className="text-muted-foreground text-lg">Hand-picked homes from verified sources.</p>
+                            <h2 className="text-4xl md:text-5xl font-black mb-4">Featured <span className="text-primary italic">Listings</span></h2>
+                            <p className="text-muted-foreground text-lg font-medium">Hand-picked homes from verified sources.</p>
                         </div>
                     </Reveal>
                     <Reveal direction="left" delay={0.2}>
-                        <Button variant="outline" className="hidden md:flex">Explore All Properties</Button>
+                        <Link href={user ? "/dashboard/client" : "/auth?mode=signup"}>
+                            <Button variant="outline" className="hidden md:flex h-12 px-8 border-border/60 hover:bg-primary hover:text-white transition-all">
+                                Explore All Properties
+                            </Button>
+                        </Link>
                     </Reveal>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {listings.map((item, index) => (
-                        <Reveal key={item.id} delay={0.1 * index} width="100%" className="h-full">
-                            <div className="group bg-white hover:bg-primary/[0.01] rounded overflow-hidden border border-border/60 hover:border-primary/30 transition-all duration-500 cursor-pointer h-full flex flex-col">
-                                <div className="relative h-64 overflow-hidden shrink-0">
-                                    <Image
-                                        src={item.image}
-                                        alt={item.address}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                    <div className="absolute top-4 right-4 z-10">
-                                        <button className="w-10 h-10 glass rounded-full flex items-center justify-center text-foreground hover:text-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm border border-white/50">
-                                            <Heart size={20} />
-                                        </button>
-                                    </div>
-                                    <div className="absolute top-4 left-4 z-10">
-                                        <span className="px-3 py-1 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm">
-                                            {item.type}
-                                        </span>
-                                    </div>
-                                    <div className="absolute bottom-4 left-4">
-                                        <span className="px-4 py-1.5 glass rounded-xl text-sm font-bold bg-white/90 shadow-sm border border-white/50 text-primary">
-                                            {item.price}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="p-8 flex flex-col flex-grow">
-                                    <div className="flex items-center gap-2 text-muted-foreground mb-6">
-                                        <MapPin size={18} className="text-primary/70 shrink-0 group-hover:text-primary transition-colors duration-500" />
-                                        <span className="text-base font-semibold text-foreground/80 truncate group-hover:text-foreground transition-colors duration-500">{item.address}</span>
-                                        {item.isVerified && (
-                                            <div className="w-4 h-4 bg-[#f0d38f] rounded-full flex items-center justify-center shrink-0" title="Verified Homeowner">
-                                                <svg className="w-3 h-3 text-[#bb7655]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-auto flex items-center justify-between border-t pt-6 border-dashed border-border">
-                                        <div className="flex items-center gap-1.5 group/icon">
-                                            <Bed size={16} className="text-primary/70 group-hover:text-primary transition-colors duration-500" />
-                                            <span className="text-xs font-bold group-hover:text-primary transition-colors duration-500">{item.beds} Bds</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 group/icon">
-                                            <Bath size={16} className="text-primary/70 group-hover:text-primary transition-colors duration-500" />
-                                            <span className="text-xs font-bold group-hover:text-primary transition-colors duration-500">{item.baths} Bths</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 group/icon">
-                                            <div className="w-4 h-4 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-500">
-                                                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                                            </div>
-                                            <span className="text-xs font-bold group-hover:text-primary transition-colors duration-500">{item.feature}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                    {loading ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="animate-pulse">
+                                <div className="bg-accent/50 aspect-[4/3] rounded-xl mb-4" />
+                                <div className="h-6 bg-accent/50 rounded-lg w-3/4 mb-2" />
+                                <div className="h-4 bg-accent/50 rounded-lg w-1/2" />
                             </div>
-                        </Reveal>
-                    ))}
+                        ))
+                    ) : properties.length > 0 ? (
+                        properties.map((item, index) => (
+                            <Reveal key={item.id} delay={0.1 * index} width="100%" className="h-full">
+                                <Link
+                                    href={user ? `/dashboard/client/property/${item.id}` : "/auth?mode=signup"}
+                                    className="group block h-full"
+                                >
+                                    <div className="bg-white hover:bg-primary/[0.01] rounded-[24px] overflow-hidden border border-border/60 hover:border-primary/30 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 cursor-pointer h-full flex flex-col">
+                                        <div className="relative aspect-[4/3] overflow-hidden shrink-0">
+                                            <Image
+                                                src={item.images?.[0] || "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2070&auto=format&fit=crop"}
+                                                alt={item.title || item.address}
+                                                fill
+                                                className="object-cover transition-transform duration-700"
+                                            />
+                                            <div className="absolute top-4 right-4 z-10">
+                                                <button className="w-10 h-10 glass rounded-full flex items-center justify-center text-foreground hover:text-red-500 hover:bg-red-50 transition-all duration-300 shadow-sm border border-white/50">
+                                                    <Heart size={20} />
+                                                </button>
+                                            </div>
+                                            <div className="absolute top-4 left-4 z-10">
+                                                <span className="px-3 py-1 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-sm">
+                                                    {item.type || "Apartment"}
+                                                </span>
+                                            </div>
+                                            <div className="absolute bottom-4 left-4">
+                                                <span className="px-4 py-1.5 glass rounded-xl text-sm font-black bg-white/90 shadow-sm border border-white/50 text-primary">
+                                                    ₦{Number(item.price).toLocaleString()}/yr
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 flex flex-col flex-grow">
+                                            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                                                <MapPin size={16} className="text-primary/70 shrink-0 group-hover:text-primary transition-colors duration-500" />
+                                                <span className="text-sm font-bold text-foreground/80 truncate group-hover:text-foreground transition-colors duration-500">
+                                                    {item.address}
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-auto flex items-center justify-between border-t pt-4 border-dashed border-border/50">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Bed size={16} className="text-primary/60" />
+                                                    <span className="text-xs font-bold">{item.beds || 0} Bds</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Bath size={16} className="text-primary/60" />
+                                                    <span className="text-xs font-bold">{item.baths || 0} Bths</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Droplets size={16} className="text-primary/60" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">
+                                                        {item.waterSource || "Well"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Link>
+                            </Reveal>
+                        ))
+                    ) : (
+                        <div className="col-span-full py-12 text-center text-muted-foreground font-medium">
+                            No properties available at the moment.
+                        </div>
+                    )}
                 </div>
 
-                <div className="mt-12 text-center md:hidden">
-                    <Button variant="outline" className="w-full">Explore All Properties</Button>
+                <div className="mt-16 text-center">
+                    <Link href={user ? "/dashboard/client" : "/auth?mode=signup"}>
+                        <Button variant="outline" className="w-full md:w-auto md:hidden h-14 px-10 border-border/60 hover:bg-primary hover:text-white transition-all">
+                            Explore All Properties
+                        </Button>
+                    </Link>
                 </div>
             </div>
         </section>

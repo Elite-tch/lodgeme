@@ -54,16 +54,27 @@ const AuthContainerContent = () => {
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
 
-    // Read URL params for mode
+    // Read URL params for mode and role
     useEffect(() => {
         const modeParam = searchParams.get("mode");
+        const roleParam = searchParams.get("role");
+        const errorParam = searchParams.get("error");
+
         if (modeParam === "login" || modeParam === "signup") {
             setMode(modeParam as Mode);
+        }
+        if (roleParam === "tenant" || roleParam === "homeowner") {
+            setRole(roleParam as Role);
+        }
+        if (errorParam === "banned") {
+            setError("Your account has been suspended due to violations of our terms. Please contact support.");
+        }
+        if (errorParam === "timeout") {
+            setError("Session expired due to inactivity. Please log in again.");
         }
     }, [searchParams]);
 
     // Observer: only redirect if user is ALREADY logged in when they visit this page
-    // This handles returning sessions (e.g. pressing Back after login)
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -77,13 +88,10 @@ const AuthContainerContent = () => {
                             router.push("/dashboard/client");
                         }
                     }
-                    // If no doc exists, do NOT redirect — let the user stay on auth page
                 } catch (err) {
-                    // On error, do NOT redirect anywhere — just log it
                     console.error("Session check error:", err);
                 }
             }
-            // If no user, do nothing — just show the form
         });
 
         return () => unsubscribe();
@@ -118,7 +126,6 @@ const AuthContainerContent = () => {
                 const result = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(result.user, { displayName: fullName });
 
-                // Save role to Firestore (role is set by which tab is selected)
                 await setDoc(doc(db, "users", result.user.uid), {
                     uid: result.user.uid,
                     displayName: fullName,
@@ -128,7 +135,6 @@ const AuthContainerContent = () => {
                 });
 
                 setSuccess("Account created! Redirecting...");
-                // Redirect based on the chosen role
                 router.push(role === "homeowner" ? "/dashboard/homeowner" : "/dashboard/client");
 
             } else {
@@ -141,7 +147,6 @@ const AuthContainerContent = () => {
                 if (!userDoc.exists()) {
                     const superAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
                     if (email.trim() === superAdminEmail) {
-                        // Secret Admin: Auto-create the profile if it's missing
                         await setDoc(doc(db, "users", result.user.uid), {
                             uid: result.user.uid,
                             displayName: "System Admin",
@@ -153,9 +158,16 @@ const AuthContainerContent = () => {
                         return;
                     }
 
-                    // For everyone else, show error
                     await signOut(auth);
                     setError("Account data not found. Please contact support.");
+                    setEmailLoading(false);
+                    return;
+                }
+
+                // CHECK BAN STATUS
+                if (userDoc.data().isBanned) {
+                    await signOut(auth);
+                    setError("Your account has been suspended due to violations of our terms. Please contact support.");
                     setEmailLoading(false);
                     return;
                 }
@@ -163,13 +175,11 @@ const AuthContainerContent = () => {
                 const storedRole = userDoc.data().role;
                 const superAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
-                // Super Admin Bypass: Always allow and redirect to admin panel
                 if (email.trim() === superAdminEmail) {
                     router.push("/dashboard/admin");
                     return;
                 }
 
-                // ROLE ENFORCEMENT for everyone else
                 if (storedRole !== role) {
                     await signOut(auth);
                     const roleName = storedRole === "homeowner" ? "Homeowner" : "Tenant";
@@ -178,7 +188,6 @@ const AuthContainerContent = () => {
                     return;
                 }
 
-                // Role matches — redirect to the correct dashboard
                 if (storedRole === "homeowner") {
                     router.push("/dashboard/homeowner");
                 } else {
@@ -187,7 +196,6 @@ const AuthContainerContent = () => {
             }
         } catch (err: any) {
             console.error("Auth Error:", err);
-            // NEVER redirect on error — just show the message
             const code = err.code;
             if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
                 setError("Invalid email or password. Please try again.");
@@ -215,7 +223,6 @@ const AuthContainerContent = () => {
             const userDoc = await getDoc(userDocRef);
 
             if (!userDoc.exists()) {
-                // New Google user — save with the selected role
                 await setDoc(userDocRef, {
                     uid: user.uid,
                     displayName: user.displayName,
@@ -226,8 +233,16 @@ const AuthContainerContent = () => {
                 });
                 router.push(role === "homeowner" ? "/dashboard/homeowner" : "/dashboard/client");
             } else {
-                // Existing Google user — check role matches selected tab
-                const storedRole = userDoc.data().role;
+                const data = userDoc.data();
+
+                // CHECK BAN STATUS
+                if (data.isBanned) {
+                    await signOut(auth);
+                    setError("Your account has been suspended due to violations of our terms. Please contact support.");
+                    return;
+                }
+
+                const storedRole = data.role;
                 if (storedRole !== role) {
                     await signOut(auth);
                     const roleName = storedRole === "homeowner" ? "Homeowner" : "Tenant";
@@ -262,7 +277,6 @@ const AuthContainerContent = () => {
 
     return (
         <section className="min-h-screen flex flex-col lg:flex-row bg-white overflow-hidden">
-            {/* Left Side: Visuals */}
             <div className="flex h-[550px] lg:h-auto lg:w-1/2 relative overflow-hidden bg-primary shrink-0">
                 <AnimatePresence mode="wait">
                     <motion.div
@@ -296,11 +310,8 @@ const AuthContainerContent = () => {
                 </Link>
             </div>
 
-            {/* Right Side: Form */}
             <div className="flex-1 flex flex-col justify-center px-6 lg:px-24 py-12 relative">
                 <div className="max-w-md w-full mx-auto">
-
-                    {/* Role Tabs */}
                     <div className="flex p-1.5 bg-accent/50 rounded mb-10 w-full">
                         <button
                             onClick={() => { setRole("tenant"); setError(null); }}
@@ -337,7 +348,6 @@ const AuthContainerContent = () => {
                         </p>
                     </div>
 
-                    {/* Error / Success Banners */}
                     <AnimatePresence mode="wait">
                         {error && (
                             <motion.div
@@ -365,7 +375,6 @@ const AuthContainerContent = () => {
 
                     {!resetMode && (
                         <>
-                            {/* Google Sign In */}
                             <div className="grid grid-cols-1 gap-4 mb-8">
                                 <Button
                                     variant="outline"
@@ -520,7 +529,6 @@ const AuthContainerContent = () => {
                     </p>
                 </div>
 
-                {/* Footer */}
                 <div className="mt-auto pt-10 text-center text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
                     <p>© 2024 LODGEME — Secure Property Rental Network</p>
                     <div className="mt-2 flex justify-center gap-4">

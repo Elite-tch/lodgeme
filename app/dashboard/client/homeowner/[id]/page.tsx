@@ -32,7 +32,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProfileModal } from "@/components/modals/ProfileModal";
 import { NotificationsModal } from "@/components/modals/NotificationsModal";
+import { ReviewModal } from "@/components/modals/ReviewModal";
+import { ReportModal } from "@/components/modals/ReportModal";
 import { setDoc, deleteDoc } from "firebase/firestore";
+import { Star, Flag } from "lucide-react";
 
 export default function HomeownerPublicProfile() {
     const { id } = useParams();
@@ -45,6 +48,9 @@ export default function HomeownerPublicProfile() {
     // Modal States
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
+    const [reviewCount, setReviewCount] = useState(0);
 
     useEffect(() => {
         const fetchHomeownerData = async () => {
@@ -61,14 +67,16 @@ export default function HomeownerPublicProfile() {
                     const q = query(
                         collection(db, "properties"),
                         where("ownerUid", "==", id),
-                        where("status", "==", "active")
+                        where("status", "==", "verified")
                     );
                     const querySnapshot = await getDocs(q);
-                    const propertyList = querySnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    setProperties(propertyList);
+                    setProperties(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+                    // Fetch Reviews count
+                    const reviewQ = query(collection(db, "reviews"), where("targetUid", "==", id));
+                    const reviewSnap = await getDocs(reviewQ);
+                    setReviewCount(reviewSnap.size);
+
                 } else {
                     console.error("Homeowner not found");
                     router.push("/dashboard/client");
@@ -214,6 +222,24 @@ export default function HomeownerPublicProfile() {
                                         <MessageCircle size={18} />
                                         Message
                                     </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setIsReviewOpen(true)}
+                                        className="h-11 px-5 rounded-lg font-black border-border/50 hover:bg-accent flex items-center gap-2"
+                                    >
+                                        <Star size={18} className="text-primary" />
+                                        Reviews ({reviewCount})
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setIsReportOpen(true)}
+                                        className="h-11 px-4 rounded-lg font-black border-red-100 text-red-500 hover:bg-red-50 flex items-center gap-2"
+                                    >
+                                        <Flag size={18} />
+                                        Report
+                                    </Button>
                                 </div>
                             </div>
                         </div>
@@ -221,7 +247,7 @@ export default function HomeownerPublicProfile() {
                 </div>
 
                 <div className="max-w-6xl mx-auto px-4">
-                    <div className="flex md:flex-row flex-col gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                         {/* Left Sidebar: About */}
                         <div className="lg:col-span-4 space-y-4">
@@ -232,7 +258,9 @@ export default function HomeownerPublicProfile() {
                                     <div className="bg-accent/10 p-5 rounded-2xl border border-accent/20">
                                         <p className="text-xs font-black uppercase tracking-widest text-primary/60 mb-3">About</p>
                                         <p className="text-sm font-medium leading-relaxed italic text-black">
-                                            {userData?.bio ? `"${userData.bio}"` : "No bio added yet. Tell tenants about yourself!"}
+                                            {String(userData?.bio || userData?.about || userData?.description || userData?.profileBio || userData?.aboutMe || "").trim() ?
+                                                `"${userData.bio || userData.about || userData.description || userData.profileBio || userData.aboutMe}"` :
+                                                "No bio added yet. This host prefer to keep things simple!"}
                                         </p>
                                     </div>
 
@@ -271,6 +299,18 @@ export default function HomeownerPublicProfile() {
                                             </div>
                                         )}
 
+                                        {(userData.occupation || userData.work) && (
+                                            <div className="flex items-center gap-4 group">
+                                                <div className="w-11 h-11 rounded-xl bg-accent/30 flex items-center justify-center text-primary shrink-0 transition-colors group-hover:bg-primary/10">
+                                                    <Briefcase size={20} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground/60">Occupation</span>
+                                                    <span className="font-bold text-sm">{userData.occupation || userData.work}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center gap-4 group">
                                             <div className="w-11 h-11 rounded-xl bg-accent/30 flex items-center justify-center text-primary shrink-0 transition-colors group-hover:bg-primary/10">
                                                 <Globe size={20} />
@@ -287,7 +327,7 @@ export default function HomeownerPublicProfile() {
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground/60">Member Since</span>
-                                                <span className="font-bold text-sm">October 2024</span>
+                                                <span className="font-bold text-sm">{userData.createdAt ? new Date(userData.createdAt.seconds * 1000).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "October 2024"}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -297,12 +337,14 @@ export default function HomeownerPublicProfile() {
 
                         {/* Right Column: Properties */}
                         <div className="lg:col-span-8 space-y-6">
-                            <div className=" ">
-                                <h3 className="text-lg font-bold md:text-2xl font-black text-foreground">Other property from {userData.displayName || userData.fullName || "Owner"}</h3>
-                            </div>
+                            {properties.length > 0 && (
+                                <div className=" ">
+                                    <h3 className="text-lg font-bold md:text-2xl font-black text-foreground">Other properties from {userData.displayName || userData.fullName || "Owner"}</h3>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {properties.slice(0, 2).map((prop, idx) => (
+                                {properties.slice(0, 4).map((prop, idx) => (
                                     <Reveal key={prop.id} direction="up" delay={idx * 0.05}>
                                         <Link href={`/dashboard/client/property/${prop.id}`} className="group block h-full">
                                             <div className="bg-white rounded overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(187,118,85,0.2)] transition-all duration-500 h-full flex flex-col border border-border/50">
@@ -372,14 +414,14 @@ export default function HomeownerPublicProfile() {
                                 ))}
 
                                 {properties.length === 0 && (
-                                    <div className="bg-white rounded-xl p-20 text-center shadow-sm">
+                                    <div className="col-span-full bg-white rounded-xl p-20 text-center shadow-sm border border-dashed border-border">
                                         <Home size={32} className="mx-auto text-muted-foreground/30 mb-4" />
                                         <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">No listings found</p>
                                     </div>
                                 )}
                             </div>
 
-                            {properties.length > 2 && (
+                            {properties.length > 4 && (
                                 <Reveal direction="up" delay={0.2}>
                                     <div className="flex justify-center mt-12 pb-10">
                                         <Link href="/dashboard/client">
@@ -407,6 +449,20 @@ export default function HomeownerPublicProfile() {
                 <NotificationsModal
                     isOpen={isNotificationsOpen}
                     onCloseAction={() => setIsNotificationsOpen(false)}
+                />
+
+                <ReviewModal
+                    isOpen={isReviewOpen}
+                    onCloseAction={() => setIsReviewOpen(false)}
+                    homeownerId={id as string}
+                    homeownerName={userData.displayName || userData.fullName || "Homeowner"}
+                />
+
+                <ReportModal
+                    isOpen={isReportOpen}
+                    onCloseAction={() => setIsReportOpen(false)}
+                    homeownerId={id as string}
+                    homeownerName={userData.displayName || userData.fullName || "Homeowner"}
                 />
 
             </div>

@@ -1,9 +1,34 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 export const CTA = () => {
+    const [user, setUser] = useState<any>(null);
+    const [role, setRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, async (u) => {
+            setUser(u);
+            if (u) {
+                const userDoc = await getDoc(doc(db, "users", u.uid));
+                if (userDoc.exists()) {
+                    setRole(userDoc.data().role);
+                }
+            } else {
+                setRole(null);
+            }
+        });
+        return () => unsub();
+    }, []);
+
+    const dashboardLink = role === "homeowner" ? "/dashboard/homeowner" : "/dashboard/client";
+
     return (
         <section className="py-24">
             <div className="container mx-auto px-6">
@@ -22,12 +47,26 @@ export const CTA = () => {
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                                <Button variant="secondary" size="lg" className="h-16 text-lg min-w-[240px]">
-                                    Sign Up as Client
-                                </Button>
-                                <Button variant="outline" size="lg" className="h-16 text-lg min-w-[240px] border-white text-white hover:bg-white/10">
-                                    Join as Homeowner
-                                </Button>
+                                {user ? (
+                                    <Link href={dashboardLink}>
+                                        <Button variant="secondary" size="lg" className="h-16 text-lg min-w-[280px] w-full shadow-xl">
+                                            Go to Dashboard
+                                        </Button>
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link href="/auth?mode=signup&role=tenant">
+                                            <Button variant="secondary" size="lg" className="h-16 text-lg min-w-[240px] w-full">
+                                                Sign Up as Client
+                                            </Button>
+                                        </Link>
+                                        <Link href="/auth?mode=signup&role=homeowner">
+                                            <Button variant="outline" size="lg" className="h-16 text-lg min-w-[240px] w-full border-white text-white hover:bg-white/10">
+                                                Join as Homeowner
+                                            </Button>
+                                        </Link>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

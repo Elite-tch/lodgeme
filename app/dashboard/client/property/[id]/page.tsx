@@ -69,7 +69,7 @@ export default function PropertyDetailsPage() {
                         const q = query(
                             collection(db, "properties"),
                             where("ownerUid", "==", data.ownerUid),
-                            where("status", "==", "active")
+                            where("status", "==", "verified")
                         );
                         const querySnapshot = await getDocs(q);
                         setHomeownerPropertiesCount(querySnapshot.size);
@@ -356,7 +356,7 @@ export default function PropertyDetailsPage() {
                                                     <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">/Year</span>
                                                 </div>
 
-                                                <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+                                                <div className="flex flex-col sm:flex-row items-center gap-3 w-fit">
                                                     <Button
                                                         onClick={handleMessageOwner}
                                                         className="flex-1 h-12 rounded text-[13px] font-black shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap px-4"
@@ -365,16 +365,10 @@ export default function PropertyDetailsPage() {
                                                         Message Homeowner
                                                     </Button>
 
-                                                    <Button
-                                                        variant="outline"
-                                                        className="flex-1 h-12 rounded text-[13px] font-black border-2 border-border/50 hover:bg-accent flex items-center justify-center gap-2 transition-all whitespace-nowrap px-4"
-                                                    >
-                                                        <PhoneCall size={16} />
-                                                        Book Inspection
-                                                    </Button>
+
                                                 </div>
 
-                                              
+
                                             </div>
                                         </div>
 

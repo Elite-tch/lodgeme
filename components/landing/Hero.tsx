@@ -1,9 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
 import Image from "next/image";
 import Link from "next/link";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 const avatars = [
     "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop",
@@ -13,6 +17,26 @@ const avatars = [
 ];
 
 export const Hero = () => {
+    const [user, setUser] = useState<any>(null);
+    const [role, setRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, async (u) => {
+            setUser(u);
+            if (u) {
+                const userDoc = await getDoc(doc(db, "users", u.uid));
+                if (userDoc.exists()) {
+                    setRole(userDoc.data().role);
+                }
+            } else {
+                setRole(null);
+            }
+        });
+        return () => unsub();
+    }, []);
+
+    const dashboardLink = role === "homeowner" ? "/dashboard/homeowner" : "/dashboard/client";
+
     return (
         <section className="relative min-h-screen flex items-center overflow-hidden">
             {/* Background Image Container */}
@@ -53,14 +77,14 @@ export const Hero = () => {
 
                     <Reveal direction="right" delay={0.4}>
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <Link href="/auth">
+                            <Link href={user ? dashboardLink : "/auth?mode=signup&role=tenant"}>
                                 <Button size="sm" className="shadow-xl py-3 px-6 shadow-primary/20">
-                                    Find a Home
+                                    {user ? "Go to Dashboard" : "Find a Home"}
                                 </Button>
                             </Link>
-                            <Link href="/auth">
+                            <Link href={user ? dashboardLink : "/auth?mode=signup&role=homeowner"}>
                                 <Button variant="outline" size="sm" className="bg-white/50 backdrop-blur-md px-6 py-3">
-                                    List Your Property
+                                    {user ? "Manage Properties" : "List Your Property"}
                                 </Button>
                             </Link>
                         </div>

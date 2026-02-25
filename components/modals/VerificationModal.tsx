@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { useState } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 
+import { auth, db } from "@/lib/firebase";
+import { doc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
+
+import { useRef, useEffect } from "react";
+
 interface VerificationModalProps {
     isOpen: boolean;
     onCloseAction: () => void;
@@ -15,15 +20,171 @@ type Step = "intro" | "id-upload" | "face-scan" | "submitting" | "completed";
 
 export const VerificationModal = ({ isOpen, onCloseAction }: VerificationModalProps) => {
     const [step, setStep] = useState<Step>("intro");
+    const [loading, setLoading] = useState(false);
+
+    // File & Camera Refs
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const [stream, setStream] = useState<MediaStream | null>(null);
+
+    // Data States
+    const [idFile, setIdFile] = useState<File | null>(null);
+    const [idFilePreview, setIdFilePreview] = useState<string | null>(null);
+    const [capturedSelfie, setCapturedSelfie] = useState<string | null>(null);
+
+    const startCamera = async () => {
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user" },
+                audio: false
+            });
+            setStream(s);
+            if (videoRef.current) videoRef.current.srcObject = s;
+        } catch (err) {
+            console.error("Camera error:", err);
+            alert("Could not access camera. Please check permissions.");
+        }
+    };
+
+    const stopCamera = () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+    };
+
+    const captureSelfie = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement("canvas");
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+                ctx.drawImage(videoRef.current, 0, 0);
+                const dataUrl = canvas.toDataURL("image/jpeg");
+                setCapturedSelfie(dataUrl);
+                stopCamera();
+                return dataUrl;
+            }
+        }
+        stopCamera();
+        return null;
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setIdFile(file);
+            setIdFilePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleSubmit = async (selfieToUse?: string) => {
+        if (!auth.currentUser) return;
+
+        setStep("submitting");
+        try {
+            const userUid = auth.currentUser.uid;
+
+            // Use the provided selfie or the state if not provided
+            const selfie = selfieToUse || capturedSelfie;
+
+            // 1. Upload ID File to Cloudinary
+            let idUrl = "";
+            if (idFile) {
+                const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+                const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+                const formData = new FormData();
+                formData.append("file", idFile);
+                formData.append("upload_preset", uploadPreset!);
+                formData.append("folder", `verifications/${userUid}/id`);
+
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                idUrl = data.secure_url;
+            }
+
+            // 2. Upload Selfie to Cloudinary
+            let selfieUrl = "";
+            if (selfie) {
+                const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+                const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+                const formData = new FormData();
+                formData.append("file", selfie);
+                formData.append("upload_preset", uploadPreset!);
+                formData.append("folder", `verifications/${userUid}/selfie`);
+
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                selfieUrl = data.secure_url;
+            }
+
+            const userRef = doc(db, "users", userUid);
+
+            // Update user status
+            await updateDoc(userRef, {
+                verificationStatus: "pending",
+                updatedAt: serverTimestamp()
+            });
+
+            // Create a verification request record
+            const verificationRef = doc(db, "verifications", userUid);
+            await setDoc(verificationRef, {
+                uid: userUid,
+                email: auth.currentUser.email,
+                displayName: auth.currentUser.displayName,
+                status: "pending",
+                submittedAt: serverTimestamp(),
+                details: {
+                    idType: "Government ID",
+                    idUrl: idUrl,
+                    selfieUrl: selfieUrl,
+                    submittedAt: new Date().toISOString()
+                }
+            });
+
+            setStep("completed");
+        } catch (error) {
+            console.error("Verification submission error:", error);
+            setStep("face-scan"); // fallback
+            alert("Submission failed. Please try again.");
+        }
+    };
 
     const handleNext = () => {
         if (step === "intro") setStep("id-upload");
-        else if (step === "id-upload") setStep("face-scan");
+        else if (step === "id-upload") {
+            if (!idFile) {
+                alert("Please upload your ID first.");
+                return;
+            }
+            setStep("face-scan");
+            startCamera();
+        }
         else if (step === "face-scan") {
-            setStep("submitting");
-            setTimeout(() => setStep("completed"), 2000);
+            if (!capturedSelfie) {
+                const selfie = captureSelfie();
+                if (selfie) {
+                    handleSubmit(selfie);
+                }
+            } else {
+                handleSubmit();
+            }
         }
     };
+
+    // Clean up camera on unmount or step change
+    useEffect(() => {
+        return () => stopCamera();
+    }, []);
 
     const handleReset = () => {
         setStep("intro");
@@ -107,12 +268,29 @@ export const VerificationModal = ({ isOpen, onCloseAction }: VerificationModalPr
                                             <h3 className="text-2xl font-black mb-2">Upload Photo ID</h3>
                                         </div>
 
-                                        <div className="border-2 border-dashed border-border rounded-3xl p-10 flex flex-col items-center justify-center bg-accent/10 hover:border-primary/50 transition-colors cursor-pointer group">
-                                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-muted-foreground mb-4 group-hover:text-primary transition-all shadow-sm">
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*,.pdf"
+                                            onChange={handleFileChange}
+                                        />
+
+                                        <div
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="border-2 border-dashed border-border rounded-3xl p-10 flex flex-col items-center justify-center bg-accent/10 hover:border-primary/50 transition-colors cursor-pointer group relative overflow-hidden min-h-[160px]"
+                                        >
+                                            {idFilePreview ? (
+                                                <img src={idFilePreview} className="absolute inset-0 w-full h-full object-cover opacity-20" alt="Preview" />
+                                            ) : null}
+
+                                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-muted-foreground mb-4 group-hover:text-primary transition-all shadow-sm relative z-10">
                                                 <Upload size={28} />
                                             </div>
-                                            <p className="font-black text-sm uppercase tracking-widest">Click to upload doc</p>
-                                            <p className="text-xs text-muted-foreground mt-1 font-medium italic">PNG, JPG or PDF up to 5MB</p>
+                                            <p className="font-black text-sm uppercase tracking-widest relative z-10">
+                                                {idFile ? idFile.name : "Click to upload doc"}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1 font-medium italic relative z-10">PNG, JPG or PDF up to 5MB</p>
                                         </div>
 
                                         <div className="bg-blue-50/50 border border-blue-100 p-4 rounded flex gap-3 items-start">
@@ -143,17 +321,30 @@ export const VerificationModal = ({ isOpen, onCloseAction }: VerificationModalPr
                                         <div className="relative w-48 h-48 mx-auto">
                                             <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin duration-[3s]" />
                                             <div className="absolute inset-4 bg-accent/20 rounded-full overflow-hidden border border-border/50 flex items-center justify-center">
-                                                <Camera size={48} className="text-muted-foreground/60" />
+                                                {capturedSelfie ? (
+                                                    <img src={capturedSelfie} className="w-full h-full object-cover" alt="Selfie" />
+                                                ) : (
+                                                    <video
+                                                        ref={videoRef}
+                                                        autoPlay
+                                                        playsInline
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                )}
                                             </div>
                                         </div>
 
                                         <p className="text-center text-muted-foreground font-bold text-sm px-4">
-                                            Make sure your face is well-lit and move any hair away from your eyes.
+                                            {capturedSelfie ? "Lookin' good! Submitting your verification..." : "Make sure your face is well-lit and move any hair away from your eyes."}
                                         </p>
 
-                                        <Button onClick={handleNext} className="w-full h-14 text-lg font-black rounded shadow-xl shadow-primary/20 flex gap-3">
+                                        <Button
+                                            onClick={handleNext}
+                                            disabled={!!capturedSelfie}
+                                            className="w-full h-14 text-lg font-black rounded shadow-xl shadow-primary/20 flex gap-3"
+                                        >
                                             <Camera size={20} />
-                                            Take Selfie
+                                            {capturedSelfie ? "Capturing..." : "Take Selfie"}
                                         </Button>
                                     </div>
                                 </Reveal>

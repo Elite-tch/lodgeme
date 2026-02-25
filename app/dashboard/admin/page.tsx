@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 export default function AdminOverview() {
     const [stats, setStats] = useState({
@@ -75,10 +76,10 @@ export default function AdminOverview() {
     }, []);
 
     const cards = [
-        { name: "Tenants", value: stats.tenants, icon: Users, color: "bg-blue-500", trend: "+12%", up: true },
-        { name: "Homeowners", value: stats.homeowners, icon: Building2, color: "bg-purple-500", trend: "+5%", up: true },
-        { name: "Total Listings", value: stats.totalProperties, icon: Home, color: "bg-amber-500", trend: "+8%", up: true },
-        { name: "Needs Verification", value: stats.pendingProperties, icon: Clock, color: "bg-red-500", trend: "urgent", up: false },
+        { name: "Tenants", value: stats.tenants, icon: Users, color: "bg-primary/20 text-primary", trend: "+12%", up: true },
+        { name: "Homeowners", value: stats.homeowners, icon: Building2, color: "bg-primary/40 text-primary", trend: "+5%", up: true },
+        { name: "Total Listings", value: stats.totalProperties, icon: Home, color: "bg-primary/60 text-primary", trend: "+8%", up: true },
+        { name: "Needs Verification", value: stats.pendingProperties, icon: Clock, color: "bg-primary text-white", trend: "urgent", up: false },
     ];
 
     return (
@@ -169,22 +170,22 @@ export default function AdminOverview() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-green-50 text-green-600 rounded">
+                                    <div className="p-2 bg-primary/10 text-primary rounded">
                                         <ShieldCheck size={16} />
                                     </div>
                                     <span className="text-xs font-bold">API Status</span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-green-600 italic">Operational</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Operational</span>
                             </div>
 
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-50 text-blue-600 rounded">
+                                    <div className="p-2 bg-primary/10 text-primary rounded">
                                         <TrendingUp size={16} />
                                     </div>
                                     <span className="text-xs font-bold">Server Load</span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Low (2%)</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Low (2%)</span>
                             </div>
                         </div>
 
@@ -208,6 +209,3 @@ export default function AdminOverview() {
     );
 }
 
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(" ");
-}

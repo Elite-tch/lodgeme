@@ -29,6 +29,8 @@ export const AdminSidebar = () => {
         { name: "Verify Properties", icon: ShieldCheck, href: "/dashboard/admin/verification" },
         { name: "Verified Properties", icon: CheckCircle2, href: "/dashboard/admin/verified" },
         { name: "Unapproved Properties", icon: XCircle, href: "/dashboard/admin/rejected" },
+        { name: "Verified Owners", icon: Users, href: "/dashboard/admin/homeowners/verified" },
+        { name: "Unverified Owners", icon: Users, href: "/dashboard/admin/homeowners/unverified" },
         { name: "Client Reports", icon: Flag, href: "/dashboard/admin/reports" },
     ];
 
@@ -60,7 +62,7 @@ export const AdminSidebar = () => {
                 <div className="p-8 pb-4">
                     <Link href="/" className="flex items-center gap-2">
                         <Image src="/logo.png" alt="LODGEME" width={120} height={32} className="h-8 w-auto" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-red-500 text-white px-2 py-0.5 rounded leading-none mt-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-primary text-white px-2 py-0.5 rounded leading-none mt-1">
                             Admin
                         </span>
                     </Link>

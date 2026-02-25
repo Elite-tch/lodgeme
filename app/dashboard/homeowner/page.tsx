@@ -8,8 +8,8 @@ import {
     MessageSquare,
     Eye,
     PlusCircle,
-    // ShieldAlert, // verification removed
-    // ShieldCheck, // verification removed
+    ShieldAlert,
+    ShieldCheck,
     ArrowRight,
     UserCircle
 } from "lucide-react";
@@ -26,13 +26,13 @@ import {
     Tooltip,
     ResponsiveContainer
 } from 'recharts';
-// import { VerificationModal } from "@/components/modals/VerificationModal"; // verification removed
+import { VerificationModal } from "@/components/modals/VerificationModal";
 
 export default function HomeownerDashboard() {
     const [userData, setUserData] = useState<any>(null);
     const [stats, setStats] = useState({ listings: 0, messages: 0, views: 0 });
     const [loading, setLoading] = useState(true);
-    // const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false); // verification removed
+    const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -53,10 +53,14 @@ export default function HomeownerDashboard() {
                         totalViews += (doc.data().views || 0);
                     });
 
+                    // Fetch Inquiries (Chats)
+                    const chatsQuery = query(collection(db, "chats"), where("homeownerId", "==", user.uid));
+                    const chatsSnap = await getDocs(chatsQuery);
+
                     setStats({
                         listings: listingsSnap.size,
-                        messages: 12, // Placeholder
-                        views: totalViews || 450 // Fallback
+                        messages: chatsSnap.size,
+                        views: totalViews
                     });
 
                 } catch (error) {
@@ -74,6 +78,10 @@ export default function HomeownerDashboard() {
 
     return (
         <main className="p-6 lg:p-12 pt-24 min-w-0">
+            <VerificationModal
+                isOpen={isVerifyModalOpen}
+                onCloseAction={() => setIsVerifyModalOpen(false)}
+            />
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -86,38 +94,51 @@ export default function HomeownerDashboard() {
                         </p>
                     </Reveal>
 
-                    <Link href="/dashboard/homeowner/add">
-                        <Button className="font-bold flex gap-2 h-12 px-6 rounded shadow-lg shadow-primary/20">
+                    <Link href={userData?.verificationStatus === "verified" ? "/dashboard/homeowner/add" : "#"}>
+                        <Button
+                            disabled={userData?.verificationStatus !== "verified"}
+                            className="font-bold flex gap-2 h-12 px-6 rounded shadow-lg shadow-primary/20"
+                            onClick={() => {
+                                if (userData?.verificationStatus !== "verified") {
+                                    alert("You must be verified to list properties.");
+                                }
+                            }}
+                        >
                             <PlusCircle size={20} />
                             List New Property
                         </Button>
                     </Link>
                 </div>
 
-                {/* Verification Banner — commented out
-                    {!loading && !userData?.isVerified && (
-                        <Reveal direction="up" delay={0.1}>
-                            <div className="bg-white border border-amber-200 rounded p-6 lg:p-8 flex flex-col md:flex-row items-center gap-6 mb-12 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                                <div className="w-16 h-16 bg-amber-50 rounded flex items-center justify-center text-amber-600 flex-shrink-0">
-                                    <ShieldAlert size={32} />
-                                </div>
-                                <div className="flex-1 text-center md:text-left">
-                                    <h3 className="text-xl font-black text-amber-900 mb-1 font-outfit uppercase tracking-tight">Account Verification Required</h3>
-                                    <p className="text-muted-foreground font-medium">
-                                        To list your properties and connect with tenants, you need to verify your identity with a Gov ID and face scan.
-                                    </p>
-                                </div>
+                {/* Verification Banner */}
+                {!loading && userData?.verificationStatus !== "verified" && (
+                    <Reveal direction="up" delay={0.1}>
+                        <div className="bg-white border rounded p-6 lg:p-8 flex flex-col md:flex-row items-center gap-6 mb-12 shadow-sm relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 w-1 h-full ${userData?.verificationStatus === 'pending' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                            <div className={`w-16 h-16 rounded flex items-center justify-center flex-shrink-0 ${userData?.verificationStatus === 'pending' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                                {userData?.verificationStatus === 'pending' ? <ShieldCheck size={32} /> : <ShieldAlert size={32} />}
+                            </div>
+                            <div className="flex-1 text-center md:text-left">
+                                <h3 className={`text-xl font-black mb-1 font-outfit uppercase tracking-tight ${userData?.verificationStatus === 'pending' ? 'text-blue-900' : 'text-amber-900'}`}>
+                                    {userData?.verificationStatus === 'pending' ? 'Verification In Progress' : 'Account Verification Required'}
+                                </h3>
+                                <p className="text-muted-foreground font-medium">
+                                    {userData?.verificationStatus === 'pending'
+                                        ? 'Your documents are being reviewed. This usually takes less than 24 hours.'
+                                        : 'To list your properties and connect with tenants, you need to verify your identity with a Gov ID and face scan.'}
+                                </p>
+                            </div>
+                            {userData?.verificationStatus !== 'pending' && (
                                 <Button
                                     onClick={() => setIsVerifyModalOpen(true)}
                                     className="bg-amber-600 hover:bg-amber-700 text-white font-black px-8 h-12 rounded shadow-lg shadow-amber-200"
                                 >
                                     Verify Now
                                 </Button>
-                            </div>
-                        </Reveal>
-                    )}
-                    */}
+                            )}
+                        </div>
+                    </Reveal>
+                )}
 
                 {/* Stats Grid */}
                 <div className="flex md:flex-row flex-col justify-center items-center gap-6 mb-12">

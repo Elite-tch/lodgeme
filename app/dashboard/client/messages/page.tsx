@@ -661,6 +661,12 @@ export default function ClientMessagesPage() {
                 </section>
             </div>
 
+            {!showChatOnMobile && (
+                <BottomNav
+                    onProfileClick={() => setIsProfileOpen(true)}
+                />
+            )}
+
             <ProfileModal
                 isOpen={isProfileOpen}
                 onCloseAction={() => setIsProfileOpen(false)}

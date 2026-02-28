@@ -107,7 +107,7 @@ export const AdminHeader = () => {
                         </div>
                         <button
                             onClick={() => router.push("/dashboard/admin")}
-                            className="w-10 h-10 rounded-full overflow-hidden border-2 border-border hover:border-primary transition-all active:scale-95 shadow-sm"
+                            className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary hover:border-primary/80 transition-all active:scale-95 shadow-sm"
                             aria-label="Admin Profile"
                         >
                             <img

@@ -17,6 +17,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { VerificationModal } from "@/components/modals/VerificationModal";
 
 // ─── Slide Panel Shell ────────────────────────────────────────────────────────
 const SlidePanel = ({ isOpen, onClose, title, children }: {
@@ -482,6 +483,7 @@ export default function MyListingsPage() {
     const [viewProp, setViewProp] = useState<any>(null);
     const [editProp, setEditProp] = useState<any>(null);
     const [userData, setUserData] = useState<any>(null);
+    const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
     const fetchListings = async (uid: string) => {
         try {
@@ -541,8 +543,16 @@ export default function MyListingsPage() {
                                 {loading ? "Loading..." : `${properties.length} ${properties.length === 1 ? "property" : "properties"} listed`}
                             </p>
                         </div>
-                        <Link href="/dashboard/homeowner/add">
-                            <Button className="font-bold flex gap-2 h-12 px-6 rounded-lg shadow-lg shadow-primary/20">
+                        <Link
+                            href="/dashboard/homeowner/add"
+                            onClick={(e) => {
+                                if (userData && userData.verificationStatus !== "verified") {
+                                    e.preventDefault();
+                                    setIsVerifyModalOpen(true);
+                                }
+                            }}
+                        >
+                            <Button className="font-bold flex gap-2 h-12 px-6 rounded-lg shadow-lg shadow-primary/20 cursor-pointer text-white">
                                 <PlusCircle size={18} /> Add Listing
                             </Button>
                         </Link>
@@ -576,8 +586,16 @@ export default function MyListingsPage() {
                                 <p className="text-muted-foreground max-w-xs mx-auto mb-8 font-medium">
                                     Once you list your first property, it will appear here for management.
                                 </p>
-                                <Link href="/dashboard/homeowner/add">
-                                    <Button variant="outline" className="font-bold rounded-full border-border/60">
+                                <Link
+                                    href="/dashboard/homeowner/add"
+                                    onClick={(e) => {
+                                        if (userData && userData.verificationStatus !== "verified") {
+                                            e.preventDefault();
+                                            setIsVerifyModalOpen(true);
+                                        }
+                                    }}
+                                >
+                                    <Button variant="outline" className="font-bold rounded-full border-border/60 cursor-pointer">
                                         Start Listing <ArrowRight size={16} className="ml-2" />
                                     </Button>
                                 </Link>
@@ -608,6 +626,7 @@ export default function MyListingsPage() {
                 {/* Slide-in Modals */}
                 <ViewModal prop={viewProp} onClose={() => setViewProp(null)} />
                 <EditModal prop={editProp} onClose={() => setEditProp(null)} onSaved={handleSaved} />
+                <VerificationModal isOpen={isVerifyModalOpen} onCloseAction={() => setIsVerifyModalOpen(false)} />
             </main>
         </>
     );

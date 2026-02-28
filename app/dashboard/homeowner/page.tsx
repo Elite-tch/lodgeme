@@ -94,16 +94,16 @@ export default function HomeownerDashboard() {
                         </p>
                     </Reveal>
 
-                    <Link href={userData?.verificationStatus === "verified" ? "/dashboard/homeowner/add" : "#"}>
-                        <Button
-                            disabled={userData?.verificationStatus !== "verified"}
-                            className="font-bold flex gap-2 h-12 px-6 rounded shadow-lg shadow-primary/20"
-                            onClick={() => {
-                                if (userData?.verificationStatus !== "verified") {
-                                    alert("You must be verified to list properties.");
-                                }
-                            }}
-                        >
+                    <Link
+                        href="/dashboard/homeowner/add"
+                        onClick={(e) => {
+                            if (userData?.verificationStatus !== "verified") {
+                                e.preventDefault();
+                                setIsVerifyModalOpen(true);
+                            }
+                        }}
+                    >
+                        <Button className="font-bold flex gap-2 h-12 px-6 rounded shadow-lg shadow-primary/20 text-white cursor-pointer active:scale-95 transition-all">
                             <PlusCircle size={20} />
                             List New Property
                         </Button>

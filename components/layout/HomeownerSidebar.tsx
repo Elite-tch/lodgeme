@@ -15,8 +15,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
-import { useState } from "react";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { VerificationModal } from "@/components/modals/VerificationModal";
 
 interface HomeownerSidebarProps {
 }
@@ -24,6 +28,26 @@ interface HomeownerSidebarProps {
 export const HomeownerSidebar = () => {
     const pathname = usePathname();
     const router = useRouter();
+    const [isVerified, setIsVerified] = useState(false);
+    const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+
+    useEffect(() => {
+        const unsubAuth = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const unsubDoc = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data().verificationStatus === "verified") {
+                        setIsVerified(true);
+                    } else {
+                        setIsVerified(false);
+                    }
+                });
+                return () => unsubDoc();
+            } else {
+                setIsVerified(false);
+            }
+        });
+        return () => unsubAuth();
+    }, []);
 
     const handleSignOut = async () => {
         try {
@@ -53,23 +77,23 @@ export const HomeownerSidebar = () => {
                 </Link>
             </div>
 
-            {/* Verification Card 
+            {/* Verification Card */}
             <div className="px-6 mb-8">
                 <div className={cn(
                     "p-4 rounded border flex flex-col gap-3 relative overflow-hidden",
                     isVerified
-                        ? "bg-green-50/50 border-green-100"
+                        ? "bg-primary/5 border-primary/20"
                         : "bg-amber-50/50 border-amber-100"
                 )}>
                     <div className="flex items-center gap-2">
                         {isVerified ? (
-                            <ShieldCheck className="text-green-600" size={18} />
+                            <ShieldCheck className="text-primary" size={18} />
                         ) : (
                             <ShieldAlert className="text-amber-600" size={18} />
                         )}
                         <span className={cn(
                             "text-xs font-black uppercase tracking-widest",
-                            isVerified ? "text-green-700" : "text-amber-700"
+                            isVerified ? "text-primary" : "text-amber-700"
                         )}>
                             {isVerified ? "Verified Owner" : "Not Verified"}
                         </span>
@@ -78,7 +102,7 @@ export const HomeownerSidebar = () => {
                     {!isVerified && (
                         <button
                             onClick={() => setIsVerifyModalOpen(true)}
-                            className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black rounded transition-colors uppercase tracking-widest"
+                            className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black rounded transition-colors uppercase tracking-widest shadow"
                         >
                             Start Verification
                         </button>
@@ -90,11 +114,29 @@ export const HomeownerSidebar = () => {
                 isOpen={isVerifyModalOpen}
                 onCloseAction={() => setIsVerifyModalOpen(false)}
             />
-*/}
             {/* Navigation */}
             <nav className="flex-1 px-4 space-y-1">
                 {menuItems.map((item) => {
                     const isActive = pathname === item.href;
+
+                    if (item.name === "Add Property" && !isVerified) {
+                        return (
+                            <button
+                                key={item.href}
+                                onClick={() => setIsVerifyModalOpen(true)}
+                                className={cn(
+                                    "w-full flex items-center gap-3 px-4 py-3 rounded font-bold transition-all text-left",
+                                    isActive
+                                        ? "bg-primary text-white shadow-lg shadow-primary/20"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                                )}
+                            >
+                                <item.icon size={20} />
+                                <span className="text-sm">{item.name}</span>
+                            </button>
+                        );
+                    }
+
                     return (
                         <Link
                             key={item.href}

@@ -10,6 +10,7 @@ import { auth, db } from "@/lib/firebase";
 import { doc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 import { useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface VerificationModalProps {
     isOpen: boolean;
@@ -191,7 +192,14 @@ export const VerificationModal = ({ isOpen, onCloseAction }: VerificationModalPr
         onCloseAction();
     };
 
-    return (
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -382,6 +390,7 @@ export const VerificationModal = ({ isOpen, onCloseAction }: VerificationModalPr
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };

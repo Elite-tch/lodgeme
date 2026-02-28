@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
+import { VerificationModal } from "@/components/modals/VerificationModal";
 
 export default function AddPropertyPage() {
     const router = useRouter();
@@ -39,6 +40,7 @@ export default function AddPropertyPage() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Form State
@@ -58,7 +60,13 @@ export default function AddPropertyPage() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) setUserData(userDoc.data());
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    setUserData(data);
+                    if (data.verificationStatus !== "verified") {
+                        setIsVerifyModalOpen(true);
+                    }
+                }
             } else {
                 router.push("/auth");
             }
@@ -190,412 +198,445 @@ export default function AddPropertyPage() {
 
     return (
         <>
-            <main className="p-6 lg:p-12 pt-24 min-w-0">
-                <div className="max-w-3xl mx-auto">
-                    {/* Progress Header */}
-                    <div className="mb-12">
-                        <div className="flex items-center gap-4 mb-8">
-                            <Link href="/dashboard/homeowner">
-                                <Button variant="ghost" size="sm" className="rounded-full p-2 h-10 w-10">
-                                    <ChevronLeft size={20} />
+            {userData && userData.verificationStatus !== "verified" ? (
+                <>
+                    <VerificationModal
+                        isOpen={isVerifyModalOpen}
+                        onCloseAction={() => setIsVerifyModalOpen(false)}
+                    />
+                    <main className="p-6 lg:p-12 pt-24 min-w-0 flex items-center justify-center min-h-[80vh]">
+                        <div className="max-w-md w-full text-center space-y-6 bg-white p-8 rounded-2xl border border-border shadow-sm">
+                            <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600">
+                                <Info size={40} />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black uppercase tracking-tight font-outfit">Verification Required</h2>
+                                <p className="text-muted-foreground font-medium mt-2">
+                                    You must verify your identity before you can start listing properties on Lodgeme.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={() => setIsVerifyModalOpen(true)}
+                                className="w-full h-14 font-black rounded shadow-xl uppercase text-xs tracking-widest bg-amber-600 hover:bg-amber-700 text-white mb-3"
+                            >
+                                Start Verification
+                            </Button>
+                            <Link href="/dashboard/homeowner" className="block w-full">
+                                <Button variant="outline" className="w-full h-14 font-black rounded uppercase text-xs tracking-widest border-border/60">
+                                    Return to Dashboard
                                 </Button>
                             </Link>
-                            <div>
-                                <h1 className="text-2xl font-black font-outfit uppercase tracking-tight">List Property</h1>
-                                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Step {step > 4 ? 4 : step} of 4</p>
+                        </div>
+                    </main>
+                </>
+            ) : (
+                <main className="p-6 lg:p-12 pt-24 min-w-0">
+                    <div className="max-w-3xl mx-auto">
+                        {/* Progress Header */}
+                        <div className="mb-12">
+                            <div className="flex items-center gap-4 mb-8">
+                                <Link href="/dashboard/homeowner">
+                                    <Button variant="ghost" size="sm" className="rounded-full p-2 h-10 w-10">
+                                        <ChevronLeft size={20} />
+                                    </Button>
+                                </Link>
+                                <div>
+                                    <h1 className="text-2xl font-black font-outfit uppercase tracking-tight">List Property</h1>
+                                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Step {step > 4 ? 4 : step} of 4</p>
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="flex gap-2 h-1.5 w-full bg-accent/30 rounded-full overflow-hidden">
+                                {[1, 2, 3, 4].map((s) => (
+                                    <div
+                                        key={s}
+                                        className={`flex-1 transition-all duration-500 rounded-full ${step >= s ? "bg-primary" : "bg-transparent"
+                                            }`}
+                                    />
+                                ))}
                             </div>
                         </div>
 
-                        {/* Progress Bar */}
-                        <div className="flex gap-2 h-1.5 w-full bg-accent/30 rounded-full overflow-hidden">
-                            {[1, 2, 3, 4].map((s) => (
-                                <div
-                                    key={s}
-                                    className={`flex-1 transition-all duration-500 rounded-full ${step >= s ? "bg-primary" : "bg-transparent"
-                                        }`}
-                                />
-                            ))}
-                        </div>
-                    </div>
+                        <AnimatePresence mode="wait">
+                            {step === 1 && (
+                                <motion.div
+                                    key="step1"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="space-y-8"
+                                >
+                                    <div className="bg-white border border-border p-8 rounded shadow-sm">
+                                        <h2 className="text-xl font-black mb-6 flex items-center gap-3">
+                                            <div className="p-2 bg-primary/10 text-primary rounded">
+                                                <Home size={20} />
+                                            </div>
+                                            Basic Information
+                                        </h2>
 
-                    <AnimatePresence mode="wait">
-                        {step === 1 && (
-                            <motion.div
-                                key="step1"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="space-y-8"
-                            >
-                                <div className="bg-white border border-border p-8 rounded shadow-sm">
-                                    <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                                        <div className="p-2 bg-primary/10 text-primary rounded">
-                                            <Home size={20} />
-                                        </div>
-                                        Basic Information
-                                    </h2>
+                                        <div className="space-y-6">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Catchy Title (Sales Copy)*</Label>
+                                                <Input
+                                                    name="title"
+                                                    required
+                                                    value={formData.title}
+                                                    onChange={handleInputChange}
+                                                    placeholder="e.g. Luxury 2 Bedroom Apartment in Lekki Phase 1"
+                                                    className={inputClasses}
+                                                />
+                                            </div>
 
-                                    <div className="space-y-6">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Catchy Title (Sales Copy)*</Label>
-                                            <Input
-                                                name="title"
-                                                required
-                                                value={formData.title}
-                                                onChange={handleInputChange}
-                                                placeholder="e.g. Luxury 2 Bedroom Apartment in Lekki Phase 1"
-                                                className={inputClasses}
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Property Type*</Label>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {["Self-contain", "Mini flat", "1 Bedroom", "2 Bedroom", "3 Bedroom", "Duplex", "Bungalow"].map(t => (
-                                                        <button
-                                                            key={t}
-                                                            type="button"
-                                                            onClick={() => setFormData(prev => ({ ...prev, type: t }))}
-                                                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${formData.type === t
-                                                                ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                                                                : "bg-accent/30 text-muted-foreground border-transparent hover:bg-accent/50"
-                                                                }`}
-                                                        >
-                                                            {t}
-                                                        </button>
-                                                    ))}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-3">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Property Type*</Label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {["Self-contain", "Mini flat", "1 Bedroom", "2 Bedroom", "3 Bedroom", "Duplex", "Bungalow"].map(t => (
+                                                            <button
+                                                                key={t}
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, type: t }))}
+                                                                className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${formData.type === t
+                                                                    ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                                                                    : "bg-accent/30 text-muted-foreground border-transparent hover:bg-accent/50"
+                                                                    }`}
+                                                            >
+                                                                {t}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Annual Rent (₦)*</Label>
+                                                    <Input
+                                                        name="price"
+                                                        required
+                                                        value={formData.price}
+                                                        onChange={handleInputChange}
+                                                        placeholder="2,500,000"
+                                                        className={inputClasses}
+                                                    />
                                                 </div>
                                             </div>
+
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Annual Rent (₦)*</Label>
-                                                <Input
-                                                    name="price"
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description*</Label>
+                                                <textarea
+                                                    name="description"
                                                     required
-                                                    value={formData.price}
+                                                    value={formData.description}
                                                     onChange={handleInputChange}
-                                                    placeholder="2,500,000"
-                                                    className={inputClasses}
+                                                    rows={4}
+                                                    placeholder="Describe the unique features of your lodge..."
+                                                    className="w-full p-4 rounded bg-accent/30 border border-transparent focus:bg-white focus:border-primary/20 focus:ring-0 focus:outline-none outline-none transition-all font-medium resize-none shadow-none"
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description*</Label>
-                                            <textarea
-                                                name="description"
-                                                required
-                                                value={formData.description}
-                                                onChange={handleInputChange}
-                                                rows={4}
-                                                placeholder="Describe the unique features of your lodge..."
-                                                className="w-full p-4 rounded bg-accent/30 border border-transparent focus:bg-white focus:border-primary/20 focus:ring-0 focus:outline-none outline-none transition-all font-medium resize-none shadow-none"
-                                            />
+                                        {error && (
+                                            <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse">
+                                                {error}
+                                            </p>
+                                        )}
+
+                                        <Button onClick={nextStep} className="w-full h-14 text-lg font-black rounded shadow-xl shadow-primary/20">
+                                            Next: Property Details
+                                            <ArrowRight size={20} className="ml-2" />
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {step === 2 && (
+                                <motion.div
+                                    key="step2"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="space-y-8"
+                                >
+                                    <div className="bg-white border border-border p-8 rounded shadow-sm">
+                                        <h2 className="text-xl font-black mb-6 flex items-center gap-3">
+                                            <div className="p-2 bg-blue-50 text-blue-600 rounded">
+                                                <Info size={20} />
+                                            </div>
+                                            Property Specifications
+                                        </h2>
+
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bedrooms*</Label>
+                                                <div className="relative">
+                                                    <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                                                    <Input
+                                                        name="beds"
+                                                        required
+                                                        value={formData.beds}
+                                                        onChange={handleInputChange}
+                                                        placeholder="2"
+                                                        className={inputClasses + " pl-12"}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bathrooms*</Label>
+                                                <div className="relative">
+                                                    <Droplets className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                                                    <Input
+                                                        name="baths"
+                                                        required
+                                                        value={formData.baths}
+                                                        onChange={handleInputChange}
+                                                        placeholder="2"
+                                                        className={inputClasses + " pl-12"}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Water Source*</Label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {["Borehole", "Well", "Public Tap", "Pipe Borne", "None"].map(w => (
+                                                        <button
+                                                            key={w}
+                                                            type="button"
+                                                            onClick={() => setFormData(prev => ({ ...prev, waterSource: w }))}
+                                                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${formData.waterSource === w
+                                                                ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                                                                : "bg-accent/30 text-muted-foreground border-transparent hover:bg-accent/50"
+                                                                }`}
+                                                        >
+                                                            {w}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     {error && (
                                         <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse">
-                                            {error}
+                                            Please fill in all required fields
                                         </p>
                                     )}
 
-                                    <Button onClick={nextStep} className="w-full h-14 text-lg font-black rounded shadow-xl shadow-primary/20">
-                                        Next: Property Details
-                                        <ArrowRight size={20} className="ml-2" />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {step === 2 && (
-                            <motion.div
-                                key="step2"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="space-y-8"
-                            >
-                                <div className="bg-white border border-border p-8 rounded shadow-sm">
-                                    <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                                        <div className="p-2 bg-blue-50 text-blue-600 rounded">
-                                            <Info size={20} />
-                                        </div>
-                                        Property Specifications
-                                    </h2>
-
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bedrooms*</Label>
-                                            <div className="relative">
-                                                <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                                                <Input
-                                                    name="beds"
-                                                    required
-                                                    value={formData.beds}
-                                                    onChange={handleInputChange}
-                                                    placeholder="2"
-                                                    className={inputClasses + " pl-12"}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bathrooms*</Label>
-                                            <div className="relative">
-                                                <Droplets className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                                                <Input
-                                                    name="baths"
-                                                    required
-                                                    value={formData.baths}
-                                                    onChange={handleInputChange}
-                                                    placeholder="2"
-                                                    className={inputClasses + " pl-12"}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Water Source*</Label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {["Borehole", "Well", "Public Tap", "Pipe Borne", "None"].map(w => (
-                                                    <button
-                                                        key={w}
-                                                        type="button"
-                                                        onClick={() => setFormData(prev => ({ ...prev, waterSource: w }))}
-                                                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${formData.waterSource === w
-                                                            ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                                                            : "bg-accent/30 text-muted-foreground border-transparent hover:bg-accent/50"
-                                                            }`}
-                                                    >
-                                                        {w}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                    <div className="flex gap-4">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 font-black rounded border-border/60">
+                                            Back
+                                        </Button>
+                                        <Button onClick={nextStep} className="flex-1 h-14 text-lg font-black rounded shadow-xl shadow-primary/20">
+                                            Next: Location
+                                            <ArrowRight size={20} className="ml-2" />
+                                        </Button>
                                     </div>
-                                </div>
+                                </motion.div>
+                            )}
 
-                                {error && (
-                                    <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse">
-                                        Please fill in all required fields
-                                    </p>
-                                )}
-
-                                <div className="flex gap-4">
-                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 font-black rounded border-border/60">
-                                        Back
-                                    </Button>
-                                    <Button onClick={nextStep} className="flex-1 h-14 text-lg font-black rounded shadow-xl shadow-primary/20">
-                                        Next: Location
-                                        <ArrowRight size={20} className="ml-2" />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {step === 3 && (
-                            <motion.div
-                                key="step3"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="space-y-8"
-                            >
-                                <div className="bg-white border border-border p-8 rounded shadow-sm">
-                                    <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                                        <div className="p-2 bg-purple-50 text-purple-600 rounded">
-                                            <MapPin size={20} />
-                                        </div>
-                                        Property Location
-                                    </h2>
-
-                                    <div className="space-y-6">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Full Address*</Label>
-                                            <Input
-                                                name="address"
-                                                required
-                                                value={formData.address}
-                                                onChange={handleInputChange}
-                                                placeholder="e.g. 15 Admiralty Way, Lekki Phase 1, Lagos"
-                                                className={inputClasses}
-                                            />
-                                        </div>
-
-                                        <div className="aspect-video w-full bg-accent/20 rounded border border-border flex items-center justify-center text-muted-foreground grayscale opacity-50">
-                                            <div className="text-center">
-                                                <MapPin className="mx-auto mb-2" size={32} />
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Map module coming soon</p>
+                            {step === 3 && (
+                                <motion.div
+                                    key="step3"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="space-y-8"
+                                >
+                                    <div className="bg-white border border-border p-8 rounded shadow-sm">
+                                        <h2 className="text-xl font-black mb-6 flex items-center gap-3">
+                                            <div className="p-2 bg-purple-50 text-purple-600 rounded">
+                                                <MapPin size={20} />
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                            Property Location
+                                        </h2>
 
-                                {error && (
-                                    <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse">
-                                        Please fill in all required fields
-                                    </p>
-                                )}
-
-                                <div className="flex gap-4">
-                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 font-black rounded border-border/60">
-                                        Back
-                                    </Button>
-                                    <Button onClick={nextStep} className="flex-1 h-14 text-lg font-black rounded shadow-xl shadow-primary/20">
-                                        Next: Photos
-                                        <ArrowRight size={20} className="ml-2" />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {step === 4 && (
-                            <motion.div
-                                key="step4"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="space-y-8"
-                            >
-                                <div className="bg-white border border-border p-8 rounded shadow-sm">
-                                    <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                                        <div className="p-2 bg-amber-50 text-amber-600 rounded">
-                                            <Camera size={20} />
-                                        </div>
-                                        Photos & Media
-                                    </h2>
-
-                                    <div className="space-y-4">
-                                        {/* Hidden file input */}
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            multiple
-                                            className="hidden"
-                                            onChange={handleImageSelect}
-                                        />
-
-                                        {/* Image Grid */}
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                            {imagePreviews.map((src, i) => (
-                                                <div key={i} className="relative aspect-square rounded overflow-hidden border border-border group">
-                                                    <img src={src} alt={`preview-${i}`} className="w-full h-full object-cover" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeImage(i)}
-                                                        className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                    {i === 0 && (
-                                                        <div className="absolute bottom-2 left-2 bg-primary text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
-                                                            Cover
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            {/* Upload Button */}
-                                            {imagePreviews.length < 8 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    className="aspect-square bg-accent/30 rounded border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 hover:bg-white transition-all cursor-pointer group"
-                                                >
-                                                    <Upload size={24} className="group-hover:text-primary transition-colors" />
-                                                    <span className="text-[8px] font-black uppercase tracking-widest mt-2">Add Photo</span>
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* Upload Progress */}
-                                        {loading && uploadProgress > 0 && (
+                                        <div className="space-y-6">
                                             <div className="space-y-2">
-                                                <div className="flex justify-between text-xs font-bold text-muted-foreground">
-                                                    <span>Uploading photos...</span>
-                                                    <span>{uploadProgress}%</span>
-                                                </div>
-                                                <div className="h-1.5 bg-accent/30 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-primary rounded-full transition-all duration-300"
-                                                        style={{ width: `${uploadProgress}%` }}
-                                                    />
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Full Address*</Label>
+                                                <Input
+                                                    name="address"
+                                                    required
+                                                    value={formData.address}
+                                                    onChange={handleInputChange}
+                                                    placeholder="e.g. 15 Admiralty Way, Lekki Phase 1, Lagos"
+                                                    className={inputClasses}
+                                                />
+                                            </div>
+
+                                            <div className="aspect-video w-full bg-accent/20 rounded border border-border flex items-center justify-center text-muted-foreground grayscale opacity-50">
+                                                <div className="text-center">
+                                                    <MapPin className="mx-auto mb-2" size={32} />
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Map module coming soon</p>
                                                 </div>
                                             </div>
-                                        )}
-
-                                        <div className="bg-primary/5 border border-primary/10 p-4 rounded flex gap-3 items-start">
-                                            <Info className="text-primary shrink-0 mt-0.5" size={16} />
-                                            <p className="text-[11px] text-primary/80 font-bold leading-relaxed">
-                                                Upload up to 8 photos. The first photo will be the cover image. Bright, wide-angle shots work best.
-                                            </p>
                                         </div>
                                     </div>
-                                </div>
 
-                                {error && (
-                                    <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse mb-4">
-                                        Please fill in all required fields
-                                    </p>
-                                )}
+                                    {error && (
+                                        <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse">
+                                            Please fill in all required fields
+                                        </p>
+                                    )}
 
-                                <div className="flex gap-4">
-                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 font-black rounded border-border/60">
-                                        Back
-                                    </Button>
-                                    <Button
-                                        onClick={handleSubmit}
-                                        disabled={loading}
-                                        className="flex-1 h-14 text-lg font-black rounded shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 text-white"
-                                    >
-                                        {loading ? "Publishing..." : "Finish and Publish"}
-                                        {!loading && <CheckCircle2 size={20} className="ml-2" />}
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
+                                    <div className="flex gap-4">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 font-black rounded border-border/60">
+                                            Back
+                                        </Button>
+                                        <Button onClick={nextStep} className="flex-1 h-14 text-lg font-black rounded shadow-xl shadow-primary/20">
+                                            Next: Photos
+                                            <ArrowRight size={20} className="ml-2" />
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            )}
 
-                        {step === 5 && (
-                            <motion.div
-                                key="success"
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-center py-12 space-y-8"
-                            >
-                                <Confetti
-                                    width={width}
-                                    height={height}
-                                    recycle={false}
-                                    numberOfPieces={500}
-                                    gravity={0.15}
-                                    colors={["#bb7655", "#f0d38f", "#1c1c1c"]}
-                                />
+                            {step === 4 && (
+                                <motion.div
+                                    key="step4"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="space-y-8"
+                                >
+                                    <div className="bg-white border border-border p-8 rounded shadow-sm">
+                                        <h2 className="text-xl font-black mb-6 flex items-center gap-3">
+                                            <div className="p-2 bg-amber-50 text-amber-600 rounded">
+                                                <Camera size={20} />
+                                            </div>
+                                            Photos & Media
+                                        </h2>
 
-                                <div>
-                                    <h2 className="text-4xl font-black font-outfit uppercase tracking-tighter">Listing Published!</h2>
-                                    <p className="text-muted-foreground font-medium mt-2 max-w-xs mx-auto">
-                                        Your property is now live on LODGEME and visible to thousands of potential tenants.
-                                    </p>
-                                </div>
-                                <div className="flex flex-col md:flex-row w-[95%] mx-auto gap-3 md:gap-8">
-                                    <Link href="/dashboard/homeowner/listings" className="w-full">
-                                        <Button className="w-full mx-auto h-12 font-black rounded shadow">View My Listings</Button>
-                                    </Link>
-                                    <Button variant="ghost" onClick={() => {
-                                        setFormData({
-                                            title: "", price: "", type: "Apartment", address: "", beds: "", baths: "",
-                                            waterSource: "Borehole", description: "", images: []
-                                        });
-                                        setStep(1);
-                                    }} className="h-12 font-black border-primary border rounded mx-auto w-full uppercase text-[10px] tracking-widest">
-                                        List Another Property
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </main>
+                                        <div className="space-y-4">
+                                            {/* Hidden file input */}
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                className="hidden"
+                                                onChange={handleImageSelect}
+                                            />
+
+                                            {/* Image Grid */}
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                                {imagePreviews.map((src, i) => (
+                                                    <div key={i} className="relative aspect-square rounded overflow-hidden border border-border group">
+                                                        <img src={src} alt={`preview-${i}`} className="w-full h-full object-cover" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeImage(i)}
+                                                            className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                        {i === 0 && (
+                                                            <div className="absolute bottom-2 left-2 bg-primary text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                                                                Cover
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+
+                                                {/* Upload Button */}
+                                                {imagePreviews.length < 8 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        className="aspect-square bg-accent/30 rounded border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 hover:bg-white transition-all cursor-pointer group"
+                                                    >
+                                                        <Upload size={24} className="group-hover:text-primary transition-colors" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest mt-2">Add Photo</span>
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Upload Progress */}
+                                            {loading && uploadProgress > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                                                        <span>Uploading photos...</span>
+                                                        <span>{uploadProgress}%</span>
+                                                    </div>
+                                                    <div className="h-1.5 bg-accent/30 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-primary rounded-full transition-all duration-300"
+                                                            style={{ width: `${uploadProgress}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="bg-primary/5 border border-primary/10 p-4 rounded flex gap-3 items-start">
+                                                <Info className="text-primary shrink-0 mt-0.5" size={16} />
+                                                <p className="text-[11px] text-primary/80 font-bold leading-relaxed">
+                                                    Upload up to 8 photos. The first photo will be the cover image. Bright, wide-angle shots work best.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {error && (
+                                        <p className="text-red-500 text-xs font-black uppercase tracking-widest text-center animate-pulse mb-4">
+                                            Please fill in all required fields
+                                        </p>
+                                    )}
+
+                                    <div className="flex gap-4">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 font-black rounded border-border/60">
+                                            Back
+                                        </Button>
+                                        <Button
+                                            onClick={handleSubmit}
+                                            disabled={loading}
+                                            className="flex-1 h-14 text-lg font-black rounded shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 text-white"
+                                        >
+                                            {loading ? "Publishing..." : "Finish and Publish"}
+                                            {!loading && <CheckCircle2 size={20} className="ml-2" />}
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {step === 5 && (
+                                <motion.div
+                                    key="success"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-center py-12 space-y-8"
+                                >
+                                    <Confetti
+                                        width={width}
+                                        height={height}
+                                        recycle={false}
+                                        numberOfPieces={500}
+                                        gravity={0.15}
+                                        colors={["#bb7655", "#f0d38f", "#1c1c1c"]}
+                                    />
+
+                                    <div>
+                                        <h2 className="text-4xl font-black font-outfit uppercase tracking-tighter">Listing Published!</h2>
+                                        <p className="text-muted-foreground font-medium mt-2 max-w-xs mx-auto">
+                                            Your property is now live on LODGEME and visible to thousands of potential tenants.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col md:flex-row w-[95%] mx-auto gap-3 md:gap-8">
+                                        <Link href="/dashboard/homeowner/listings" className="w-full">
+                                            <Button className="w-full mx-auto h-12 font-black rounded shadow">View My Listings</Button>
+                                        </Link>
+                                        <Button variant="ghost" onClick={() => {
+                                            setFormData({
+                                                title: "", price: "", type: "Apartment", address: "", beds: "", baths: "",
+                                                waterSource: "Borehole", description: "", images: []
+                                            });
+                                            setStep(1);
+                                        }} className="h-12 font-black border-primary border rounded mx-auto w-full uppercase text-[10px] tracking-widest">
+                                            List Another Property
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </main>
+            )}
         </>
     );
 }

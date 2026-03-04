@@ -53,6 +53,7 @@ const AuthContainerContent = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
 
     // Read URL params for mode and role
     useEffect(() => {
@@ -123,6 +124,12 @@ const AuthContainerContent = () => {
         try {
             if (mode === "signup") {
                 // --- SIGN UP FLOW ---
+                if (!agreedToTerms) {
+                    setError("You must agree to the Terms of Service and Privacy Policy to continue.");
+                    setEmailLoading(false);
+                    return;
+                }
+
                 const result = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(result.user, { displayName: fullName });
 
@@ -508,6 +515,25 @@ const AuthContainerContent = () => {
                                 </div>
                             </div>
 
+                            {mode === "signup" && (
+                                <div className="flex items-start gap-3 py-2">
+                                    <div className="flex items-center h-5 mt-0.5">
+                                        <input
+                                            id="terms"
+                                            name="terms"
+                                            type="checkbox"
+                                            required
+                                            checked={agreedToTerms}
+                                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer accent-primary"
+                                        />
+                                    </div>
+                                    <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight cursor-pointer select-none">
+                                        I agree to the <Link href="/terms" className="text-primary font-bold hover:underline">Terms and Conditions</Link>
+                                    </label>
+                                </div>
+                            )}
+
                             <Button
                                 type="submit"
                                 disabled={googleLoading || emailLoading}
@@ -532,8 +558,8 @@ const AuthContainerContent = () => {
                 <div className="mt-auto pt-10 text-center text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
                     <p>© 2024 LODGEME — Secure Property Rental Network</p>
                     <div className="mt-2 flex justify-center gap-4">
-                        <Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link>
-                        <Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link>
+                        <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                        <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
                     </div>
                 </div>
             </div>

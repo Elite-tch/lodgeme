@@ -49,12 +49,12 @@ export const FeaturedListings = () => {
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12">
                     <Reveal direction="right" delay={0.1}>
                         <div>
-                            <h2 className="text-4xl md:text-5xl font-black mb-4">Featured <span className="text-primary italic">Listings</span></h2>
+                            <h2 className="text-4xl md:text-5xl font-black mb-4">Latest <span className="text-primary italic">Properties</span></h2>
                             <p className="text-muted-foreground text-lg font-medium">Hand-picked homes from verified sources.</p>
                         </div>
                     </Reveal>
                     <Reveal direction="left" delay={0.2}>
-                        <Link href={user ? "/dashboard/client" : "/auth?mode=signup"}>
+                        <Link href="/explore">
                             <Button variant="outline" className="hidden md:flex h-12 px-8 border-border/60 hover:bg-primary hover:text-white transition-all">
                                 Explore All Properties
                             </Button>
@@ -140,7 +140,7 @@ export const FeaturedListings = () => {
                 </div>
 
                 <div className="mt-16 text-center">
-                    <Link href={user ? "/dashboard/client" : "/auth?mode=signup"}>
+                    <Link href="/explore">
                         <Button variant="outline" className="w-full md:w-auto md:hidden h-14 px-10 border-border/60 hover:bg-primary hover:text-white transition-all">
                             Explore All Properties
                         </Button>

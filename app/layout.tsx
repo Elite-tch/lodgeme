@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Bridging the gap between homeowners and prospect tenants. Secure, remote, and convenient rental interactions for modern living.",
 };
 
+import { CookieConsentBanner } from "@/components/ui/CookieConsent";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,6 +30,7 @@ export default function RootLayout({
         className="antialiased font-sans"
       >
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   );

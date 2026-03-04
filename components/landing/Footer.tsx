@@ -29,9 +29,9 @@ export const Footer = () => {
                         <div>
                             <h4 className="font-bold text-lg mb-8 uppercase tracking-wider">Quick Links</h4>
                             <ul className="space-y-4">
-                                {["Find a Home", "List Property", "How It Works", "Pricing Plan", "Contact Us"].map((link) => (
+                                {["List Property", "Contact Us"].map((link) => (
                                     <li key={link}>
-                                        <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-300">
+                                        <a href={link === "Contact Us" ? "/contact" : "#"} className="text-muted-foreground hover:text-primary transition-colors duration-300">
                                             {link}
                                         </a>
                                     </li>
@@ -44,9 +44,16 @@ export const Footer = () => {
                         <div>
                             <h4 className="font-bold text-lg mb-8 uppercase tracking-wider">Legal</h4>
                             <ul className="space-y-4">
-                                {["Terms of Service", "Privacy Policy", "Cookie Policy", "Verification Policy", "Safety Guide"].map((link) => (
+                                {["Terms and Conditions", "Copyrights"].map((link) => (
                                     <li key={link}>
-                                        <a href="#" className="text-muted-foreground hover:text-primary transition-colors duration-300">
+                                        <a
+                                            href={
+                                                link === "Terms of Service" ? "/terms" :
+                                                        link === "Copyrights" ? "/copyrights" :
+                                                            "#"
+                                            }
+                                            className="text-muted-foreground hover:text-primary transition-colors duration-300"
+                                        >
                                             {link}
                                         </a>
                                     </li>

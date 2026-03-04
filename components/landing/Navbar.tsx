@@ -48,17 +48,17 @@ export const Navbar = () => {
     const dashboardLink = role === "homeowner" ? "/dashboard/homeowner" : "/dashboard/client";
 
     const navLinks = [
-        { name: "How it works", href: "#how-it-works" },
-        { name: "Why Lodgeme", href: "#why-lodgeme" },
-        { name: "Listings", href: "#listings" },
-        { name: "Contact", href: "#contact" },
+        { name: "How it works", href: "/#how-it-works" },
+        { name: "Why Lodgeme", href: "/#why-lodgeme" },
+        { name: "Explore", href: "/explore" },
+        { name: "Contact", href: "/contact" },
     ];
 
     return (
         <nav
             className={cn(
                 "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
-                isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-border py-4" : "bg-transparent py-6"
+                isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-border py-4" : "bg-[#FAFAFA] py-6"
             )}
         >
             <div className="container mx-auto flex items-center justify-between">

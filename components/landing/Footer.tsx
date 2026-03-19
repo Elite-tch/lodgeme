@@ -48,7 +48,7 @@ export const Footer = () => {
                                     <li key={link}>
                                         <a
                                             href={
-                                                link === "Terms of Service" ? "/terms" :
+                                                link === "Terms and Conditions" ? "/terms" :
                                                         link === "Copyrights" ? "/copyrights" :
                                                             "#"
                                             }

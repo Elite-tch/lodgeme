@@ -260,7 +260,7 @@ export default function PropertyDetailsPage() {
                                                 <h4 className="text-lg font-black text-foreground leading-tight">{homeowner?.fullName || property.ownerName || "Premium Homeowner"}</h4>
                                                 <div className="flex items-center gap-1.5 text-muted-foreground font-bold text-xs uppercase tracking-widest mt-1">
                                                     <MapPin size={12} className="text-primary" />
-                                                    <span>{homeowner?.location || "Lagos, Nigeria"}</span>
+                                                    <span>{homeowner?.location || "Anambra"}</span>
                                                 </div>
                                                 <div className="mt-2 py-2 flex items-center gap-2 rounded text-center ">
                                                     <div className="text-lg font-black text-primary leading-none">{homeownerPropertiesCount}</div>
@@ -350,10 +350,34 @@ export default function PropertyDetailsPage() {
                                             </div>
 
                                             <div className="relative z-10">
-                                                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-2">Investment Required</p>
-                                                <div className="flex items-baseline gap-2 mb-8">
-                                                    <span className="text-lg font-black text-foreground">₦{Number(property.price).toLocaleString()}</span>
-                                                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">/Year</span>
+                                                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-4">Price Breakdown</p>
+
+                                                {/* Annual Rent */}
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Annual Rent</span>
+                                                    <span className="text-sm font-black text-foreground">₦{Number(property.price).toLocaleString()}</span>
+                                                </div>
+
+                                                {/* Agent Fee — only show if set and > 0 */}
+                                                {property.agentFee > 0 && (
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Agent Fee</span>
+                                                        <span className="text-sm font-black text-foreground">₦{Number(property.agentFee).toLocaleString()}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Divider */}
+                                                <div className="border-t border-border my-3" />
+
+                                                {/* Total */}
+                                                <div className="flex items-baseline justify-between mb-8">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total</span>
+                                                    <div className="text-right">
+                                                        <span className="text-2xl font-black text-foreground">
+                                                            ₦{(Number(property.price) + Number(property.agentFee || 0)).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-muted-foreground ml-1">/Year</span>
+                                                    </div>
                                                 </div>
 
                                                 <div className="flex flex-col sm:flex-row items-center gap-3 w-fit">

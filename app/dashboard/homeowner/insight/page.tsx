@@ -26,10 +26,17 @@ export default function MarketInsightPage() {
     const [stats, setStats] = useState({
         totalListings: 0,
         totalInterests: 0,
-        todayInterests: 0
+        todayInterests: 0,
+        topArea: "N/A",
+        topType: "N/A",
+        avgBudget: "N/A"
     });
     const [chartData, setChartData] = useState<any[]>([]);
     const [distributionData, setDistributionData] = useState<any[]>([]);
+    const [proTip, setProTip] = useState({
+        title: "Pro Tip",
+        text: "Properties with at least 5 photos receive 40% more interest from potential tenants. Update your listings today!"
+    });
     const [recentInterests, setRecentInterests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -92,11 +99,48 @@ export default function MarketInsightPage() {
                 value: typeCounts[type]
             }));
 
+            // 5. Calculate Market Trends
+            const locationCounts: { [key: string]: number } = {};
+            snapInt.docs.forEach(doc => {
+                const loc = doc.data().location;
+                if (loc) locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+            });
+
+            // Find Top Area
+            const sortedAreas = Object.entries(locationCounts).sort((a, b) => b[1] - a[1]);
+            const topArea = sortedAreas.length > 0 ? sortedAreas[0][0] : " Ifite-Awka , Anambra";
+
+            // Find Top Property Type from market demand (if available) or user's inventory
+            const topType = formattedDistribution.length > 0 
+                ? formattedDistribution.sort((a, b) => b.value - a.value)[0].name 
+                : "Self-contain";
+
+            // Avg Budget
+            const totalBudget = snapInt.docs.reduce((acc, doc) => acc + (Number(doc.data().budget) || 0), 0);
+            const avgBudget = snapInt.size > 0 
+                ? `₦${Math.round(totalBudget / snapInt.size).toLocaleString()}` 
+                : "₦250k";
+
+            // 6. Dynamic Pro Tip
+            const tips = [
+                "Properties with at least 5 photos receive 40% more interest. High-quality visuals are key!",
+                "Respond to tenant interests quickly to increase your chance of closing a deal.",
+                "Ensure your property address is accurate to show up in the right market demand searches.",
+                "Detailed descriptions help tenants understand the value of your property faster.",
+                "Keep your prices competitive by checking the Market Avg. Rent in your area.",
+                "Verified properties get a trust badge that attracts more high-quality tenants."
+            ];
+            const randomTip = tips[Math.floor(Math.random() * tips.length)];
+
             setStats({
                 totalListings: totalProp,
                 totalInterests: totalInt,
-                todayInterests: todayCount
+                todayInterests: todayCount,
+                topArea,
+                topType,
+                avgBudget
             });
+            setProTip({ title: "Market Tip", text: randomTip });
             setChartData(formattedChartData);
             setDistributionData(formattedDistribution);
             setRecentInterests(snapInt.docs.slice(0, 5).map(doc => ({ id: doc.id, ...doc.data() })));
@@ -232,9 +276,9 @@ export default function MarketInsightPage() {
                                         <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
                                             <TrendingUp size={120} />
                                         </div>
-                                        <h3 className="text-xl font-black mb-4 relative z-10">Pro Tip</h3>
+                                        <h3 className="text-xl font-black mb-4 relative z-10">{proTip.title}</h3>
                                         <p className="text-sm font-medium leading-relaxed opacity-90 relative z-10">
-                                            Properties with at least 5 photos receive 40% more interest from potential tenants. Update your listings today!
+                                            {proTip.text}
                                         </p>
                                     </div>
 
@@ -247,9 +291,9 @@ export default function MarketInsightPage() {
                                         </div>
                                         <div className="space-y-5">
                                             {[
-                                                { label: "High Demand Area", value: "Lekki, Lagos", trend: "+12%" },
-                                                { label: "Top Property Type", value: "Self-contain", trend: "+8%" },
-                                                { label: "Avg. Response Time", value: "< 2 Hours", trend: "Fast" }
+                                                { label: "High Demand Area", value: "Ifite-Awka, Anambra", trend: "Hot" },
+                                                { label: "Top Property Type", value: stats.topType, trend: "+8%" },
+                                                { label: "Market Avg. Rent", value: stats.avgBudget, trend: "Target" }
                                             ].map((item) => (
                                                 <div key={item.label} className="flex items-center justify-between border-b border-border/50 pb-4 last:border-0 last:pb-0">
                                                     <div>

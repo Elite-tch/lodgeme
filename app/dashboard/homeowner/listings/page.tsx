@@ -107,7 +107,7 @@ const ViewModal = ({ prop, onClose }: { prop: any; onClose: () => void }) => {
                     <div className="bg-primary/5 border border-primary/10 rounded-xl p-5 flex items-center justify-between">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Annual Rent</p>
-                            <p className="text-3xl font-black text-primary">₦{Number(prop.price).toLocaleString()}</p>
+                            <p className="text-3xl font-black text-primary">₦{(Number(prop.price) + Number(prop.agentFee || 0)).toLocaleString()}</p>
                         </div>
                         <span className="bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
                             {prop.type}
@@ -430,7 +430,7 @@ const PropertyCard = ({ prop, onView, onEdit, onDelete, isDeleting, index }: {
             <div className="flex items-end justify-between mb-4">
                 <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Annual Rent</p>
-                    <p className="text-xl font-black text-primary">₦{Number(prop.price).toLocaleString()}</p>
+                    <p className="text-xl font-black text-primary">₦{(Number(prop.price) + Number(prop.agentFee || 0)).toLocaleString()}</p>
                 </div>
                 <span className="text-[9px] font-black uppercase tracking-widest bg-accent/60 px-2.5 py-1 rounded-full text-muted-foreground">
                     {prop.type}

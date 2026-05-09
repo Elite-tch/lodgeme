@@ -110,7 +110,7 @@ export default function PropertyVerification() {
                                     <div className="flex items-center justify-between pt-4 border-t border-border">
                                         <div>
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Price</p>
-                                            <p className="text-sm font-black">₦{Number(prop.price).toLocaleString()}</p>
+                                            <p className="text-sm font-black">₦{(Number(prop.price) + Number(prop.agentFee || 0)).toLocaleString()}</p>
                                         </div>
                                         <div className="p-2 bg-accent/50 rounded text-primary">
                                             <Eye size={18} />
@@ -185,7 +185,7 @@ export default function PropertyVerification() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="p-4 bg-white rounded-xl border border-border">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Annual Price</p>
-                                                <p className="text-xl font-black">₦{Number(selectedProp.price).toLocaleString()}</p>
+                                                <p className="text-xl font-black">₦{(Number(selectedProp.price) + Number(selectedProp.agentFee || 0)).toLocaleString()}</p>
                                             </div>
                                             <div className="p-4 bg-white rounded-xl border border-border">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Property Type</p>

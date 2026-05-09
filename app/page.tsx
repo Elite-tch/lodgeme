@@ -15,7 +15,7 @@ export default function Home() {
       <HowItWorks />
       <WhyLodgeme />
       <FeaturedListings />
-      <Testimonials />
+     {/* <Testimonials /> */}
       <CTA />
       <Footer />
     </main>

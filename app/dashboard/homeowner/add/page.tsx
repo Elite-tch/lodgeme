@@ -47,6 +47,7 @@ export default function AddPropertyPage() {
     const [formData, setFormData] = useState({
         title: "",
         price: "",
+        agentFee: "",
         type: " ",
         address: "",
         beds: "",
@@ -171,6 +172,7 @@ export default function AddPropertyPage() {
                 ownerUid: auth.currentUser.uid,
                 ownerName: auth.currentUser.displayName,
                 price: Number(formData.price),
+                agentFee: formData.agentFee ? Number(formData.agentFee) : 0,
                 beds: Number(formData.beds),
                 baths: Number(formData.baths),
                 createdAt: serverTimestamp(),
@@ -315,6 +317,17 @@ export default function AddPropertyPage() {
                                                         value={formData.price}
                                                         onChange={handleInputChange}
                                                         placeholder="2,500,000"
+                                                        className={inputClasses}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Agent Fee (₦) <span className="font-normal normal-case tracking-normal text-muted-foreground/60">optional</span></Label>
+                                                    <Input
+                                                        name="agentFee"
+                                                        value={formData.agentFee}
+                                                        onChange={handleInputChange}
+                                                        placeholder="e.g. 150,000"
                                                         className={inputClasses}
                                                     />
                                                 </div>
@@ -623,7 +636,7 @@ export default function AddPropertyPage() {
                                         </Link>
                                         <Button variant="ghost" onClick={() => {
                                             setFormData({
-                                                title: "", price: "", type: "Apartment", address: "", beds: "", baths: "",
+                                                title: "", price: "", agentFee: "", type: "Apartment", address: "", beds: "", baths: "",
                                                 waterSource: "Borehole", description: "", images: []
                                             });
                                             setStep(1);

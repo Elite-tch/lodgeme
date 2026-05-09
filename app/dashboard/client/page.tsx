@@ -216,7 +216,7 @@ export default function ClientDashboard() {
 
                                             <div className="flex-1">
                                                 <div className="flex justify-end pb-3 gap-1.5 pointer-events-none">
-                                                    <span className="text-lg font-bold text-foreground">₦{Number(prop.price).toLocaleString()}</span>
+                                                    <span className="text-lg font-bold text-foreground">₦{(Number(prop.price) + Number(prop.agentFee || 0)).toLocaleString()}</span>
                                                     <span className="text-[10px] font-medium opacity-60 lowercase mt-2">/ year</span>
                                                 </div>
                                             </div>

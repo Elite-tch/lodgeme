@@ -81,7 +81,7 @@ export default function VerifiedProperties() {
                                     </div>
                                     <div className="absolute bottom-4 left-4">
                                         <span className="bg-white/90 backdrop-blur-md text-foreground text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-border/50">
-                                            ₦{Number(prop.price).toLocaleString()}
+                                            ₦{(Number(prop.price) + Number(prop.agentFee || 0)).toLocaleString()}
                                         </span>
                                     </div>
                                 </div>

@@ -58,7 +58,7 @@ export default function ContactPage() {
         {
             icon: Phone,
             title: "Phone",
-            value: "+234 800 000 0000",
+            value: "+234 707 561 3852",
             description: "Mon-Fri from 8am to 5pm",
             color: "text-blue-500",
             bg: "bg-blue-50"
@@ -66,7 +66,7 @@ export default function ContactPage() {
         {
             icon: Mail,
             title: "Email",
-            value: "hello@lodgeme.com",
+            value: "lodgemeofficial@gmail.com",
             description: "Our friendly team is here to help.",
             color: "text-orange-500",
             bg: "bg-orange-50"

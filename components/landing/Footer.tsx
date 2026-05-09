@@ -66,17 +66,14 @@ export const Footer = () => {
                         <div>
                             <h4 className="font-bold text-lg mb-8 uppercase tracking-wider">Contact</h4>
                             <ul className="space-y-5">
-                                <li className="flex gap-4">
-                                    <MapPin size={20} className="text-primary mt-1 shrink-0" />
-                                    <span className="text-muted-foreground">12 Abijo GRA, Lekki-Epe Expressway, Lagos, Nigeria</span>
-                                </li>
+                               
                                 <li className="flex gap-4">
                                     <Phone size={20} className="text-primary mt-1 shrink-0" />
-                                    <span className="text-muted-foreground">+234 812 345 6789</span>
+                                    <a href="tel:+2347075613852" className="text-muted-foreground hover:text-primary transition-colors">+234 707 561 3852</a>
                                 </li>
                                 <li className="flex gap-4">
                                     <Mail size={20} className="text-primary mt-1 shrink-0" />
-                                    <span className="text-muted-foreground">hello@lodgeme.com</span>
+                                    <a href="mailto:lodgemeofficial@gmail.com" className="text-muted-foreground hover:text-primary transition-colors">lodgemeofficial@gmail.com</a>
                                 </li>
                             </ul>
                         </div>

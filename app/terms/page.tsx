@@ -243,7 +243,7 @@ export default function TermsPage() {
                                 </div>
                                 <div className="space-y-6 text-muted-foreground">
                                     <p className="font-bold text-foreground">
-                                        TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL LODGEME.COM BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, EXEMPLARY, PUNITIVE OR CONSEQUENTIAL DAMAGES.
+                                        TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT WILL lodgeme.online BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, EXEMPLARY, PUNITIVE OR CONSEQUENTIAL DAMAGES.
                                     </p>
                                     <p>
                                         This includes loss of use, loss of data, loss of business or loss of profits arising out of or in connection with the renter’s/ buyer’s use of the platform, whether such liability arises from any claim based upon contract, warranty, tort (including negligence), strict liability or otherwise.

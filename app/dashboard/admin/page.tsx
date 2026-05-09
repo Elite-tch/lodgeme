@@ -143,7 +143,7 @@ export default function AdminOverview() {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-xs font-black">₦{Number(item.price).toLocaleString()}</p>
+                                            <p className="text-xs font-black">₦{(Number(item.price) + Number(item.agentFee || 0)).toLocaleString()}</p>
                                             <span className={cn(
                                                 "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
                                                 item.status === "verified" ? "bg-green-100 text-green-600" :

@@ -6,7 +6,7 @@ import { collection, query, where, getDocs, orderBy, deleteDoc, doc } from "fire
 import { DashboardNavbar } from "@/components/layout/DashboardNavbar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Reveal } from "@/components/ui/Reveal";
-import { Send, Clock, Trash2, MapPin, Search, BedDouble, Bath, Wallet, PlusCircle } from "lucide-react";
+import { Send, Clock, Trash2, MapPin, Search, BedDouble, Bath, Wallet, PlusCircle, Home } from "lucide-react";
 import { ProfileModal } from "@/components/modals/ProfileModal";
 import { NotificationsModal } from "@/components/modals/NotificationsModal";
 import { InterestModal } from "@/components/modals/InterestModal";
@@ -127,6 +127,16 @@ export default function MyInterestsPage() {
                                             <div>
                                                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Location</p>
                                                 <p className="text-sm font-bold text-foreground">{interest.location || "Anywhere"}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-accent/50 rounded-lg text-primary">
+                                                <Home size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">House Type</p>
+                                                <p className="text-sm font-bold text-foreground">{interest.type || "Any Type"}</p>
                                             </div>
                                         </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Info, MapPin, Wallet, BedDouble, Bath } from "lucide-react";
+import { X, Send, Info, MapPin, Wallet, BedDouble, Bath, Home, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
@@ -11,6 +11,7 @@ import { addDoc, collection, serverTimestamp, getDocs, query, where } from "fire
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
 import { createNotification } from "@/lib/notifications";
+import { cn } from "@/lib/utils";
 
 interface InterestModalProps {
     isOpen: boolean;
@@ -26,13 +27,24 @@ export const InterestModal = ({ isOpen, onCloseAction, onSuccess }: InterestModa
         beds: "",
         baths: "",
         budget: "",
+        type: "",
         content: ""
     });
     const [success, setSuccess] = useState(false);
+    const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+
+    const propertyTypes = [
+        "Self-contain",
+        "One Bedroom Flat",
+        "Two Bedroom Flat",
+        "Three Bedroom Flat",
+        "Duplex",
+        
+    ];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.content.trim() || !formData.location.trim()) return;
+        if (!formData.content.trim() || !formData.location.trim() || !formData.type) return;
 
         setLoading(true);
         try {
@@ -48,6 +60,7 @@ export const InterestModal = ({ isOpen, onCloseAction, onSuccess }: InterestModa
                 beds: formData.beds,
                 baths: formData.baths,
                 budget: formData.budget,
+                type: formData.type,
                 content: formData.content,
                 createdAt: serverTimestamp(),
             });
@@ -88,6 +101,7 @@ export const InterestModal = ({ isOpen, onCloseAction, onSuccess }: InterestModa
                     beds: "",
                     baths: "",
                     budget: "",
+                    type: "",
                     content: ""
                 });
             }, 2000);
@@ -171,6 +185,8 @@ export const InterestModal = ({ isOpen, onCloseAction, onSuccess }: InterestModa
                                                 />
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="budget">Budget (₦ / year)</Label>
                                             <div className="relative">
@@ -186,6 +202,64 @@ export const InterestModal = ({ isOpen, onCloseAction, onSuccess }: InterestModa
                                                     className="pl-10 h-12 bg-accent/30 border-transparent focus:bg-white focus:border-primary/20"
                                                     required
                                                 />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="type">Property Type</Label>
+                                            <div className="relative">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                                                    className="w-full h-12 pl-10 pr-4 bg-accent/30 border-transparent hover:bg-accent/40 focus:bg-white focus:border-primary/20 rounded-md text-sm font-medium outline-none transition-all flex items-center justify-between group"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <Home className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50" size={16} />
+                                                        <span className={formData.type ? "text-foreground" : "text-muted-foreground"}>
+                                                            {formData.type || "Select type"}
+                                                        </span>
+                                                    </div>
+                                                    <ChevronDown 
+                                                        size={16} 
+                                                        className={cn(
+                                                            "text-muted-foreground/50 transition-transform duration-200",
+                                                            isTypeDropdownOpen && "rotate-180"
+                                                        )} 
+                                                    />
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {isTypeDropdownOpen && (
+                                                        <>
+                                                            <div 
+                                                                className="fixed inset-0 z-[110]" 
+                                                                onClick={() => setIsTypeDropdownOpen(false)} 
+                                                            />
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                animate={{ opacity: 1, y: 4, scale: 1 }}
+                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                className="absolute top-full left-0 w-full bg-white border border-border rounded-lg shadow-xl z-[120] py-1 overflow-hidden"
+                                                            >
+                                                                {propertyTypes.map((type) => (
+                                                                    <button
+                                                                        key={type}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setFormData({ ...formData, type });
+                                                                            setIsTypeDropdownOpen(false);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "w-full px-4 py-2.5 text-left text-sm font-medium transition-colors hover:bg-primary/5",
+                                                                            formData.type === type ? "bg-primary/5 text-primary" : "text-foreground/70"
+                                                                        )}
+                                                                    >
+                                                                        {type}
+                                                                    </button>
+                                                                ))}
+                                                            </motion.div>
+                                                        </>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
                                         </div>
                                     </div>

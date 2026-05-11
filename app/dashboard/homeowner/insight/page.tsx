@@ -414,6 +414,10 @@ export default function MarketInsightPage() {
                                                     <span className="text-xs font-bold">{interest.baths || 0} Baths</span>
                                                 </div>
                                                 <div className="flex items-center gap-2 col-span-2">
+                                                    <Home size={14} className="text-primary/60" />
+                                                    <span className="text-xs font-bold">{interest.type || "Any Type"}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 col-span-2">
                                                     <Wallet size={14} className="text-primary/60" />
                                                     <span className="text-xs font-bold">₦{Number(interest.budget).toLocaleString()} / yr</span>
                                                 </div>

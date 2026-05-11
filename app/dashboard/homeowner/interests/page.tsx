@@ -4,7 +4,7 @@
 // import { HomeownerHeader } from "@/components/layout/HomeownerHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import {
-    Send, MapPin, Wallet, BedDouble, Bath, Clock, Search, Users
+    Send, MapPin, Wallet, BedDouble, Bath, Clock, Search, Users, Home
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
@@ -99,7 +99,7 @@ export default function HomeownerClientInterestsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filtered.map((interest, idx) => (
                                 <Reveal key={interest.id} direction="up" delay={idx * 0.05}>
-                                    <div className="bg-white p-6 rounded  h-[380px] shadow-sm border border-border/50 hover:border-primary/30 hover:shadow-md transition-all flex flex-col group overflow-hidden">
+                                    <div className="bg-white p-6 rounded min-h-[380px] shadow-sm border border-border/50 hover:border-primary/30 hover:shadow-md transition-all flex flex-col group overflow-hidden">
 
                                         {/* Client info */}
                                         <div className="flex items-center gap-3 mb-5">
@@ -126,6 +126,16 @@ export default function HomeownerClientInterestsPage() {
                                                 <div>
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Location</p>
                                                     <p className="text-sm font-bold">{interest.location || "Anywhere"}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="p-1.5 bg-accent/60 rounded text-primary">
+                                                    <Home size={14} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">House Type</p>
+                                                    <p className="text-sm font-semibold">{interest.type || "Any Type"}</p>
                                                 </div>
                                             </div>
 

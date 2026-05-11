@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -18,7 +18,7 @@ import {
     onAuthStateChanged,
     signOut,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, collection, getDocs, query, where } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Role = "tenant" | "homeowner";
@@ -48,6 +48,9 @@ const AuthContainerContent = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [resetMode, setResetMode] = useState(false);
+    
+    // Track if we are currently performing an auth action to prevent observer race conditions
+    const isProcessing = useRef(false);
 
     // Form State
     const [email, setEmail] = useState("");
@@ -78,7 +81,8 @@ const AuthContainerContent = () => {
     // Observer: only redirect if user is ALREADY logged in when they visit this page
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
+            // ONLY auto-redirect if we are NOT currently processing a manual login/signup
+            if (user && !isProcessing.current) {
                 try {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists()) {
@@ -118,6 +122,7 @@ const AuthContainerContent = () => {
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setEmailLoading(true);
+        isProcessing.current = true;
         setError(null);
         setSuccess(null);
 
@@ -167,7 +172,6 @@ const AuthContainerContent = () => {
 
                     await signOut(auth);
                     setError("Account data not found. Please contact support.");
-                    setEmailLoading(false);
                     return;
                 }
 
@@ -175,7 +179,6 @@ const AuthContainerContent = () => {
                 if (userDoc.data().isBanned) {
                     await signOut(auth);
                     setError("Your account has been suspended due to violations of our terms. Please contact support.");
-                    setEmailLoading(false);
                     return;
                 }
 
@@ -191,7 +194,6 @@ const AuthContainerContent = () => {
                     await signOut(auth);
                     const roleName = storedRole === "homeowner" ? "Homeowner" : "Tenant";
                     setError(`This account is registered as a ${roleName}. Please select the correct tab.`);
-                    setEmailLoading(false);
                     return;
                 }
 
@@ -207,7 +209,22 @@ const AuthContainerContent = () => {
             if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
                 setError("Invalid email or password. Please try again.");
             } else if (code === "auth/email-already-in-use") {
-                setError("This email is already registered. Please log in instead.");
+                try {
+                    // Try to find what role this email is already registered with
+                    const usersRef = collection(db, "users");
+                    const q = query(usersRef, where("email", "==", email.trim()));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        const existingData = querySnapshot.docs[0].data();
+                        const existingRole = existingData.role === "homeowner" ? "Homeowner" : "Tenant";
+                        setError(`This email is already registered as a ${existingRole}. Please log in using the ${existingRole} tab.`);
+                    } else {
+                        setError("This email is already registered. Please log in instead.");
+                    }
+                } catch (roleErr) {
+                    setError("This email is already registered. Please log in instead.");
+                }
             } else if (code === "auth/too-many-requests") {
                 setError("Too many failed attempts. Please try again later.");
             } else if (code === "auth/weak-password") {
@@ -215,12 +232,15 @@ const AuthContainerContent = () => {
             } else {
                 setError("Something went wrong. Please try again.");
             }
+        } finally {
             setEmailLoading(false);
+            isProcessing.current = false;
         }
     };
 
     const handleGoogleSignIn = async () => {
         setGoogleLoading(true);
+        isProcessing.current = true;
         setError(null);
         try {
             const result = await signInWithPopup(auth, googleProvider);
@@ -263,6 +283,7 @@ const AuthContainerContent = () => {
             setError("Google Sign-In failed. Please try again.");
         } finally {
             setGoogleLoading(false);
+            isProcessing.current = false;
         }
     };
 

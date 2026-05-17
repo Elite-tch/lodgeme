@@ -74,10 +74,21 @@ export default function ClientMessagesPage() {
         );
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const chats = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const chats = snapshot.docs.map(doc => {
+                const data = doc.data() as any;
+                const participantData = data.participantData ? { ...data.participantData } : {};
+                for (const uid in participantData) {
+                    if (participantData[uid]) {
+                        participantData[uid].photo = participantData[uid].photo || null;
+                        participantData[uid].name = participantData[uid].name || "User";
+                    }
+                }
+                return {
+                    id: doc.id,
+                    ...data,
+                    participantData
+                };
+            });
 
             // Force update names for BOTH participants if they are generic or missing
             const updatedChats = await Promise.all(chats.map(async (chat: any) => {
@@ -197,11 +208,11 @@ export default function ClientMessagesPage() {
                 participantData: {
                     [auth.currentUser.uid]: {
                         name: auth.currentUser.displayName || "Client User",
-                        photo: auth.currentUser.photoURL
+                        photo: auth.currentUser.photoURL || null
                     },
                     [targetUserId]: {
                         name: userData?.fullName || userData?.displayName || "Homeowner",
-                        photo: userData?.photoURL || userData?.profileImage
+                        photo: userData?.photoURL || userData?.profileImage || null
                     }
                 },
                 lastMessage: "",
@@ -233,9 +244,19 @@ export default function ClientMessagesPage() {
                 const chatRef = doc(collection(db, "chats"));
                 chatId = chatRef.id;
 
+                const sanitizedParticipantData: any = {};
+                if (activeChat.participantData) {
+                    for (const uid of Object.keys(activeChat.participantData)) {
+                        sanitizedParticipantData[uid] = {
+                            name: activeChat.participantData[uid]?.name || "User",
+                            photo: activeChat.participantData[uid]?.photo || null
+                        };
+                    }
+                }
+
                 await setDoc(chatRef, {
                     participants: activeChat.participants,
-                    participantData: activeChat.participantData,
+                    participantData: sanitizedParticipantData,
                     lastMessage: messageText,
                     updatedAt: serverTimestamp(),
                     propertyContext: propertyId || null,
@@ -243,7 +264,7 @@ export default function ClientMessagesPage() {
                     homeownerId: activeChat.homeownerId
                 });
 
-                setActiveChat({ ...activeChat, id: chatId });
+                setActiveChat({ ...activeChat, id: chatId, participantData: sanitizedParticipantData });
             } else {
                 const otherId = activeChat.participants?.find((p: string) => p !== auth.currentUser?.uid);
                 await updateDoc(doc(db, "chats", chatId), {
@@ -293,16 +314,27 @@ export default function ClientMessagesPage() {
             if (chatId.startsWith("new_")) {
                 const chatRef = doc(collection(db, "chats"));
                 chatId = chatRef.id;
+
+                const sanitizedParticipantData: any = {};
+                if (activeChat.participantData) {
+                    for (const uid of Object.keys(activeChat.participantData)) {
+                        sanitizedParticipantData[uid] = {
+                            name: activeChat.participantData[uid]?.name || "User",
+                            photo: activeChat.participantData[uid]?.photo || null
+                        };
+                    }
+                }
+
                 await setDoc(chatRef, {
                     participants: activeChat.participants,
-                    participantData: activeChat.participantData,
+                    participantData: sanitizedParticipantData,
                     lastMessage: "📎 Attachment",
                     updatedAt: serverTimestamp(),
                     propertyContext: propertyId || null,
                     tenantId: activeChat.tenantId,
                     homeownerId: activeChat.homeownerId
                 });
-                setActiveChat({ ...activeChat, id: chatId });
+                setActiveChat({ ...activeChat, id: chatId, participantData: sanitizedParticipantData });
             }
 
             const isImage = file.type.startsWith("image/");

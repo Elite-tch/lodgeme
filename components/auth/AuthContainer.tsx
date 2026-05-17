@@ -252,9 +252,9 @@ const AuthContainerContent = () => {
             if (!userDoc.exists()) {
                 await setDoc(userDocRef, {
                     uid: user.uid,
-                    displayName: user.displayName,
-                    email: user.email,
-                    photoURL: user.photoURL,
+                    displayName: user.displayName || null,
+                    email: user.email || null,
+                    photoURL: user.photoURL || null,
                     role: role,
                     createdAt: serverTimestamp(),
                 });
